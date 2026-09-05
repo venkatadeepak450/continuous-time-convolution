@@ -1,5 +1,4 @@
 let pyodide = null;
-
 let figureData = null;
 
 
@@ -9,47 +8,32 @@ let figureData = null;
 
 async function loadPython() {
 
-    const status =
-        document.getElementById("status");
+    const status = document.getElementById("status");
+    const button = document.getElementById("convolve-button");
 
-    const button =
-        document.getElementById("convolve-button");
-
-
-    status.textContent =
-        "Loading Python and Matplotlib...";
-
+    status.textContent = "Loading Python and Matplotlib...";
 
     try {
 
-        // Load Python
         pyodide = await loadPyodide();
 
-
-        // Load required packages
         await pyodide.loadPackage([
             "numpy",
             "matplotlib"
         ]);
 
-
         status.textContent =
             "Python ready. Enter your signals.";
 
-
         button.disabled = false;
-
 
     } catch (error) {
 
         console.error(error);
 
-
         status.textContent =
             "Failed to load Python or Matplotlib.";
-
     }
-
 }
 
 
@@ -88,20 +72,17 @@ async function calculateConvolution() {
                 .value
                 .trim();
 
-
         const xLinspace =
             document
                 .getElementById("x-linspace")
                 .value
                 .trim();
 
-
         const hFunction =
             document
                 .getElementById("h-function")
                 .value
                 .trim();
-
 
         const hLinspace =
             document
@@ -115,38 +96,19 @@ async function calculateConvolution() {
         // ==================================================
 
         if (!xFunction) {
-
-            throw new Error(
-                "Please enter x(t)."
-            );
-
+            throw new Error("Please enter x(t).");
         }
-
 
         if (!xLinspace) {
-
-            throw new Error(
-                "Please enter the x(t) linspace."
-            );
-
+            throw new Error("Please enter the x(t) linspace.");
         }
-
 
         if (!hFunction) {
-
-            throw new Error(
-                "Please enter h(t)."
-            );
-
+            throw new Error("Please enter h(t).");
         }
 
-
         if (!hLinspace) {
-
-            throw new Error(
-                "Please enter the h(t) linspace."
-            );
-
+            throw new Error("Please enter the h(t) linspace.");
         }
 
 
@@ -174,25 +136,15 @@ from io import BytesIO
 # ==================================================
 
 t1 = np.asarray(
-
     ${xLinspace},
-
     dtype=float
-
 )
-
-
-# Independent variable for x(t)
 
 t = t1
 
-
 x = np.asarray(
-
     ${xFunction},
-
     dtype=float
-
 )
 
 
@@ -201,25 +153,15 @@ x = np.asarray(
 # ==================================================
 
 t2 = np.asarray(
-
     ${hLinspace},
-
     dtype=float
-
 )
-
-
-# Independent variable for h(t)
 
 t = t2
 
-
 h = np.asarray(
-
     ${hFunction},
-
     dtype=float
-
 )
 
 
@@ -230,36 +172,28 @@ h = np.asarray(
 if t1.ndim != 1:
 
     raise ValueError(
-
         "The x(t) linspace must be one-dimensional."
-
     )
 
 
 if t2.ndim != 1:
 
     raise ValueError(
-
         "The h(t) linspace must be one-dimensional."
-
     )
 
 
 if len(t1) < 2:
 
     raise ValueError(
-
         "The x(t) linspace needs at least 2 points."
-
     )
 
 
 if len(t2) < 2:
 
     raise ValueError(
-
         "The h(t) linspace needs at least 2 points."
-
     )
 
 
@@ -270,38 +204,30 @@ if len(t2) < 2:
 if x.ndim != 1:
 
     raise ValueError(
-
         "x(t) must produce a one-dimensional array."
-
     )
 
 
 if h.ndim != 1:
 
     raise ValueError(
-
         "h(t) must produce a one-dimensional array."
-
     )
 
 
 if len(x) != len(t1):
 
     raise ValueError(
-
         "x(t) must produce exactly one value "
         "for every point in its linspace."
-
     )
 
 
 if len(h) != len(t2):
 
     raise ValueError(
-
         "h(t) must produce exactly one value "
         "for every point in its linspace."
-
     )
 
 
@@ -310,16 +236,11 @@ if len(h) != len(t2):
 # ==================================================
 
 dt1 = float(
-
     abs(t1[1] - t1[0])
-
 )
 
-
 dt2 = float(
-
     abs(t2[1] - t2[0])
-
 )
 
 
@@ -330,10 +251,8 @@ dt2 = float(
 if not np.isclose(dt1, dt2):
 
     raise ValueError(
-
         "The two linspaces must have "
         "the same sampling interval."
-
     )
 
 
@@ -345,13 +264,9 @@ dt = dt1
 # ==================================================
 
 y = np.convolve(
-
     x,
-
     h,
-
     mode="full"
-
 ) * dt
 
 
@@ -399,7 +314,7 @@ ax.plot(
 
 
 # ==================================================
-# DISPLAY RANGE
+# DISPLAY ONLY -10 TO +10
 # ==================================================
 
 ax.set_xlim(
@@ -436,7 +351,6 @@ ax.set_xlabel(
 
 )
 
-
 ax.set_ylabel(
 
     "Amplitude",
@@ -469,7 +383,7 @@ fig.tight_layout()
 
 
 # ==================================================
-# CONVERT FIGURE TO PNG
+# CONVERT COMPLETE FIGURE TO PNG
 # ==================================================
 
 buffer = BytesIO()
@@ -513,16 +427,12 @@ output_lines = []
 
 
 output_lines.append(
-
     "Index\\tTime\\t\\tConvolution"
-
 )
 
 
 output_lines.append(
-
     "---------------------------------------------"
-
 )
 
 
@@ -538,9 +448,7 @@ for i in range(len(y)):
 
 
 numerical_output = "\\n".join(
-
     output_lines
-
 )
 
 `;
@@ -551,21 +459,18 @@ numerical_output = "\\n".join(
         // ==================================================
 
         await pyodide.runPythonAsync(
-
             pythonCode
-
         );
 
 
         // ==================================================
-        // GET IMAGE
+        // GET RESULTS
         // ==================================================
 
         const imageValue =
             pyodide.globals.get(
                 "image_base64"
             );
-
 
         const numericalValue =
             pyodide.globals.get(
@@ -579,9 +484,7 @@ numerical_output = "\\n".join(
         ) {
 
             throw new Error(
-
                 "Matplotlib did not produce an image."
-
             );
 
         }
@@ -594,13 +497,12 @@ numerical_output = "\\n".join(
         const imageBase64 =
             String(imageValue);
 
-
         const numericalOutput =
             String(numericalValue);
 
 
         // ==================================================
-        // DISPLAY COMPLETE MATPLOTLIB FIGURE
+        // DISPLAY COMPLETE FIGURE
         // ==================================================
 
         figureContainer.innerHTML = "";
@@ -620,9 +522,7 @@ numerical_output = "\\n".join(
 
 
         figureContainer.appendChild(
-
             image
-
         );
 
 
@@ -660,10 +560,8 @@ numerical_output = "\\n".join(
 
         console.error(error);
 
-
         status.textContent =
             "Error while calculating.";
-
 
         output.textContent =
             error.toString();
@@ -680,15 +578,11 @@ numerical_output = "\\n".join(
 document
     .getElementById("download-button")
     .addEventListener(
-
         "click",
-
         function () {
 
             if (!figureData) {
-
                 return;
-
             }
 
 
@@ -705,9 +599,7 @@ document
 
 
             document.body.appendChild(
-
                 link
-
             );
 
 
@@ -715,13 +607,10 @@ document
 
 
             document.body.removeChild(
-
                 link
-
             );
 
         }
-
     );
 
 
@@ -732,11 +621,8 @@ document
 document
     .getElementById("convolve-button")
     .addEventListener(
-
         "click",
-
         calculateConvolution
-
     );
 
 
