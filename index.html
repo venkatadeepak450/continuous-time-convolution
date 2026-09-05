@@ -11,7 +11,7 @@
 
     <link rel="stylesheet" href="style.css">
 
-    <!-- Pyodide: Python running inside the browser -->
+    <!-- Pyodide -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.28.2/full/pyodide.js"></script>
 
 </head>
@@ -83,12 +83,12 @@
 
 
             <!-- ===================================== -->
-            <!-- h(t) -->
+            <!-- h(x) -->
             <!-- ===================================== -->
 
             <div class="signal-section">
 
-                <h2>Signal h(t)</h2>
+                <h2>Signal h(x)</h2>
 
 
                 <label for="h-function">
@@ -98,8 +98,8 @@
                 <input
                     id="h-function"
                     type="text"
-                    value="np.exp(-t**2)"
-                    placeholder="Example: np.exp(-t**2)"
+                    value="np.exp(-x**2)"
+                    placeholder="Example: np.exp(-x**2)"
                     spellcheck="false"
                 >
 
@@ -191,7 +191,6 @@
                 <summary>
                     Show numerical convolution values
                 </summary>
-
 
                 <pre id="output"></pre>
 
