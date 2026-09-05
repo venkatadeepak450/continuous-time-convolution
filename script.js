@@ -135,7 +135,7 @@ async function calculateConvolution() {
         if (!hFunction) {
 
             throw new Error(
-                "Please enter h(x)."
+                "Please enter h(t)."
             );
 
         }
@@ -144,7 +144,7 @@ async function calculateConvolution() {
         if (!hLinspace) {
 
             throw new Error(
-                "Please enter the h(x) linspace."
+                "Please enter the h(t) linspace."
             );
 
         }
@@ -182,13 +182,12 @@ t1 = np.asarray(
 )
 
 
-# t is the independent variable
-# for x(t)
+# Independent variable for x(t)
 
 t = t1
 
 
-x_signal = np.asarray(
+x = np.asarray(
 
     ${xFunction},
 
@@ -198,7 +197,7 @@ x_signal = np.asarray(
 
 
 # ==================================================
-# SIGNAL h(x)
+# SIGNAL h(t)
 # ==================================================
 
 t2 = np.asarray(
@@ -210,10 +209,9 @@ t2 = np.asarray(
 )
 
 
-# x is the independent variable
-# for h(x)
+# Independent variable for h(t)
 
-x = t2
+t = t2
 
 
 h = np.asarray(
@@ -242,7 +240,7 @@ if t2.ndim != 1:
 
     raise ValueError(
 
-        "The h(x) linspace must be one-dimensional."
+        "The h(t) linspace must be one-dimensional."
 
     )
 
@@ -260,7 +258,7 @@ if len(t2) < 2:
 
     raise ValueError(
 
-        "The h(x) linspace needs at least 2 points."
+        "The h(t) linspace needs at least 2 points."
 
     )
 
@@ -269,7 +267,7 @@ if len(t2) < 2:
 # VALIDATE SIGNALS
 # ==================================================
 
-if x_signal.ndim != 1:
+if x.ndim != 1:
 
     raise ValueError(
 
@@ -282,12 +280,12 @@ if h.ndim != 1:
 
     raise ValueError(
 
-        "h(x) must produce a one-dimensional array."
+        "h(t) must produce a one-dimensional array."
 
     )
 
 
-if len(x_signal) != len(t1):
+if len(x) != len(t1):
 
     raise ValueError(
 
@@ -301,7 +299,7 @@ if len(h) != len(t2):
 
     raise ValueError(
 
-        "h(x) must produce exactly one value "
+        "h(t) must produce exactly one value "
         "for every point in its linspace."
 
     )
@@ -348,7 +346,7 @@ dt = dt1
 
 y = np.convolve(
 
-    x_signal,
+    x,
 
     h,
 
@@ -386,7 +384,7 @@ fig, ax = plt.subplots(
 
 
 # ==================================================
-# PLOT
+# PLOT CONVOLUTION
 # ==================================================
 
 ax.plot(
@@ -396,6 +394,19 @@ ax.plot(
     y,
 
     linewidth=2
+
+)
+
+
+# ==================================================
+# DISPLAY RANGE
+# ==================================================
+
+ax.set_xlim(
+
+    -10,
+
+    10
 
 )
 
@@ -577,7 +588,7 @@ numerical_output = "\\n".join(
 
 
         // ==================================================
-        // CONVERT TO JAVASCRIPT STRINGS
+        // CONVERT RESULTS
         // ==================================================
 
         const imageBase64 =
@@ -589,7 +600,7 @@ numerical_output = "\\n".join(
 
 
         // ==================================================
-        // DISPLAY FIGURE
+        // DISPLAY COMPLETE MATPLOTLIB FIGURE
         // ==================================================
 
         figureContainer.innerHTML = "";
