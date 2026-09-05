@@ -1,0 +1,462 @@
+/* ========================================= */
+/* GENERAL RESET */
+/* ========================================= */
+
+* {
+
+    box-sizing: border-box;
+
+    margin: 0;
+
+    padding: 0;
+
+}
+
+
+/* ========================================= */
+/* BODY */
+/* ========================================= */
+
+body {
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    background: #eef1f5;
+
+    color: #202124;
+
+    min-height: 100vh;
+
+    padding: 40px 20px;
+
+}
+
+
+/* ========================================= */
+/* MAIN CONTAINER */
+/* ========================================= */
+
+.container {
+
+    width: 100%;
+
+    max-width: 1100px;
+
+    margin: 0 auto;
+
+}
+
+
+/* ========================================= */
+/* HEADER */
+/* ========================================= */
+
+header {
+
+    text-align: center;
+
+    margin-bottom: 35px;
+
+}
+
+
+header h1 {
+
+    font-size: 38px;
+
+    font-weight: 600;
+
+    margin-bottom: 10px;
+
+}
+
+
+header p {
+
+    color: #666;
+
+    font-size: 17px;
+
+}
+
+
+/* ========================================= */
+/* INPUT CARD */
+/* ========================================= */
+
+.input-card {
+
+    background: white;
+
+    border-radius: 14px;
+
+    padding: 30px;
+
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.08);
+
+}
+
+
+/* ========================================= */
+/* SIGNAL SECTION */
+/* ========================================= */
+
+.signal-section {
+
+    margin-bottom: 28px;
+
+}
+
+
+.signal-section h2 {
+
+    font-size: 22px;
+
+    margin-bottom: 18px;
+
+}
+
+
+/* ========================================= */
+/* LABELS */
+/* ========================================= */
+
+label {
+
+    display: block;
+
+    font-size: 14px;
+
+    font-weight: bold;
+
+    margin-top: 15px;
+
+    margin-bottom: 7px;
+
+}
+
+
+/* ========================================= */
+/* INPUTS */
+/* ========================================= */
+
+input {
+
+    width: 100%;
+
+    padding: 14px 15px;
+
+    border: 1px solid #c8ccd1;
+
+    border-radius: 7px;
+
+    background: #fafafa;
+
+    color: #202124;
+
+    font-family: Consolas, "Courier New", monospace;
+
+    font-size: 15px;
+
+    outline: none;
+
+}
+
+
+input:focus {
+
+    border-color: #555;
+
+    background: white;
+
+}
+
+
+input::placeholder {
+
+    color: #999;
+
+}
+
+
+/* ========================================= */
+/* CONVOLVE BUTTON */
+/* ========================================= */
+
+#convolve-button {
+
+    width: 100%;
+
+    padding: 16px;
+
+    margin-top: 5px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #222;
+
+    color: white;
+
+    font-size: 17px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+}
+
+
+#convolve-button:hover {
+
+    background: #444;
+
+}
+
+
+#convolve-button:disabled {
+
+    background: #aaa;
+
+    cursor: not-allowed;
+
+}
+
+
+/* ========================================= */
+/* STATUS */
+/* ========================================= */
+
+#status {
+
+    text-align: center;
+
+    margin-top: 15px;
+
+    color: #666;
+
+    font-size: 14px;
+
+}
+
+
+/* ========================================= */
+/* RESULT CARD */
+/* ========================================= */
+
+.result-card {
+
+    background: white;
+
+    border-radius: 14px;
+
+    padding: 30px;
+
+    margin-top: 25px;
+
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.08);
+
+}
+
+
+.result-card > h2 {
+
+    margin-bottom: 20px;
+
+    font-size: 24px;
+
+}
+
+
+/* ========================================= */
+/* FIGURE CONTAINER */
+/* ========================================= */
+
+.figure-container {
+
+    width: 100%;
+
+    min-height: 350px;
+
+    background: #eeeeee;
+
+    border: 1px solid #d5d5d5;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding: 20px;
+
+}
+
+
+/* ========================================= */
+/* MATPLOTLIB IMAGE */
+/* ========================================= */
+
+.figure-container img {
+
+    display: block;
+
+    width: 100%;
+
+    max-width: 1000px;
+
+    height: auto;
+
+}
+
+
+/* ========================================= */
+/* PLACEHOLDER */
+/* ========================================= */
+
+#placeholder {
+
+    color: #777;
+
+    font-size: 15px;
+
+}
+
+
+/* ========================================= */
+/* DOWNLOAD BUTTON */
+/* ========================================= */
+
+.download-button {
+
+    width: 100%;
+
+    padding: 14px;
+
+    margin-top: 20px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #333;
+
+    color: white;
+
+    font-size: 15px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+}
+
+
+.download-button:hover {
+
+    background: #555;
+
+}
+
+
+.download-button:disabled {
+
+    background: #aaa;
+
+    cursor: not-allowed;
+
+}
+
+
+/* ========================================= */
+/* NUMERICAL OUTPUT */
+/* ========================================= */
+
+details {
+
+    margin-top: 25px;
+
+}
+
+
+summary {
+
+    cursor: pointer;
+
+    font-weight: bold;
+
+    padding: 10px 0;
+
+}
+
+
+pre {
+
+    margin-top: 10px;
+
+    background: #111;
+
+    color: #eee;
+
+    padding: 20px;
+
+    border-radius: 8px;
+
+    overflow: auto;
+
+    max-height: 450px;
+
+    font-family: Consolas, "Courier New", monospace;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+}
+
+
+/* ========================================= */
+/* MOBILE */
+/* ========================================= */
+
+@media (max-width: 600px) {
+
+    body {
+
+        padding: 20px 10px;
+
+    }
+
+
+    header h1 {
+
+        font-size: 28px;
+
+    }
+
+
+    header p {
+
+        font-size: 15px;
+
+    }
+
+
+    .input-card,
+    .result-card {
+
+        padding: 20px;
+
+    }
+
+
+    input {
+
+        font-size: 13px;
+
+    }
+
+}

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Continuous-Time Convolution</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Pyodide: Python running inside the browser -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.28.2/full/pyodide.js"></script>
+
+</head>
+
+
+<body>
+
+
+    <div class="container">
+
+
+        <!-- ========================================= -->
+        <!-- HEADER -->
+        <!-- ========================================= -->
+
+        <header>
+
+            <h1>Continuous-Time Convolution</h1>
+
+            <p>
+                Enter two Python functions and their linspace values
+            </p>
+
+        </header>
+
+
+        <!-- ========================================= -->
+        <!-- INPUT SECTION -->
+        <!-- ========================================= -->
+
+        <section class="input-card">
+
+
+            <!-- ===================================== -->
+            <!-- x(t) -->
+            <!-- ===================================== -->
+
+            <div class="signal-section">
+
+                <h2>Signal x(t)</h2>
+
+
+                <label for="x-function">
+                    Python Function
+                </label>
+
+                <input
+                    id="x-function"
+                    type="text"
+                    value="np.sin(t)"
+                    placeholder="Example: np.sin(t)"
+                    spellcheck="false"
+                >
+
+
+                <label for="x-linspace">
+                    Linspace
+                </label>
+
+                <input
+                    id="x-linspace"
+                    type="text"
+                    value="np.linspace(-10, 10, 1000)"
+                    placeholder="Example: np.linspace(-10, 10, 1000)"
+                    spellcheck="false"
+                >
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- h(t) -->
+            <!-- ===================================== -->
+
+            <div class="signal-section">
+
+                <h2>Signal h(t)</h2>
+
+
+                <label for="h-function">
+                    Python Function
+                </label>
+
+                <input
+                    id="h-function"
+                    type="text"
+                    value="np.exp(-t**2)"
+                    placeholder="Example: np.exp(-t**2)"
+                    spellcheck="false"
+                >
+
+
+                <label for="h-linspace">
+                    Linspace
+                </label>
+
+                <input
+                    id="h-linspace"
+                    type="text"
+                    value="np.linspace(-10, 10, 1000)"
+                    placeholder="Example: np.linspace(-10, 10, 1000)"
+                    spellcheck="false"
+                >
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- BUTTON -->
+            <!-- ===================================== -->
+
+            <button
+                id="convolve-button"
+                disabled
+            >
+                CONVOLVE
+            </button>
+
+
+            <!-- ===================================== -->
+            <!-- STATUS -->
+            <!-- ===================================== -->
+
+            <div id="status">
+                Loading Python and Matplotlib...
+            </div>
+
+
+        </section>
+
+
+        <!-- ========================================= -->
+        <!-- OUTPUT SECTION -->
+        <!-- ========================================= -->
+
+        <section class="result-card">
+
+
+            <h2>Output</h2>
+
+
+            <!-- ===================================== -->
+            <!-- FIGURE -->
+            <!-- ===================================== -->
+
+            <div
+                id="figure-container"
+                class="figure-container"
+            >
+
+                <p id="placeholder">
+                    Your Matplotlib figure will appear here.
+                </p>
+
+            </div>
+
+
+            <!-- ===================================== -->
+            <!-- DOWNLOAD -->
+            <!-- ===================================== -->
+
+            <button
+                id="download-button"
+                class="download-button"
+                disabled
+            >
+                DOWNLOAD FIGURE
+            </button>
+
+
+            <!-- ===================================== -->
+            <!-- NUMERICAL OUTPUT -->
+            <!-- ===================================== -->
+
+            <details>
+
+                <summary>
+                    Show numerical convolution values
+                </summary>
+
+
+                <pre id="output"></pre>
+
+            </details>
+
+
+        </section>
+
+
+    </div>
+
+
+    <!-- Main JavaScript -->
+    <script src="script.js"></script>
+
+</body>
+
+</html>
