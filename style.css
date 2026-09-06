@@ -419,6 +419,70 @@ pre {
 
 
 /* ========================================= */
+/* PATCH NOTES */
+/* ========================================= */
+
+.patch-notes {
+
+    background: white;
+
+    border-radius: 14px;
+
+    padding: 22px 28px;
+
+    margin-top: 25px;
+
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.08);
+
+}
+
+
+.patch-notes h2 {
+
+    font-size: 20px;
+
+    margin-bottom: 12px;
+
+}
+
+
+.patch-notes ul {
+
+    padding-left: 20px;
+
+}
+
+
+.patch-notes li {
+
+    margin-bottom: 7px;
+
+    color: #555;
+
+    font-size: 14px;
+
+    line-height: 1.4;
+
+}
+
+
+.patch-notes code {
+
+    background: #f0f0f0;
+
+    padding: 2px 5px;
+
+    border-radius: 4px;
+
+    font-family: Consolas, "Courier New", monospace;
+
+    color: #222;
+
+}
+
+
+/* ========================================= */
 /* MOBILE */
 /* ========================================= */
 
@@ -446,7 +510,8 @@ pre {
 
 
     .input-card,
-    .result-card {
+    .result-card,
+    .patch-notes {
 
         padding: 20px;
 
