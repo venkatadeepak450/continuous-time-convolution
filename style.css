@@ -1,289 +1,137 @@
-/* ========================================= */
-/* GENERAL RESET */
-/* ========================================= */
-
 * {
-
     box-sizing: border-box;
-
-    margin: 0;
-
-    padding: 0;
-
 }
 
-
-/* ========================================= */
-/* BODY */
-/* ========================================= */
 
 body {
+    margin: 0;
 
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Arial, sans-serif;
 
-    background: #eef1f5;
+    background: #f4f6f8;
 
     color: #202124;
-
-    min-height: 100vh;
-
-    padding: 40px 20px;
-
 }
 
-
-/* ========================================= */
-/* MAIN CONTAINER */
-/* ========================================= */
 
 .container {
+    width: min(900px, 94%);
 
-    width: 100%;
-
-    max-width: 1100px;
-
-    margin: 0 auto;
-
+    margin: 35px auto;
 }
 
-
-/* ========================================= */
-/* HEADER */
-/* ========================================= */
 
 header {
-
     text-align: center;
 
-    margin-bottom: 35px;
-
+    margin-bottom: 25px;
 }
 
 
-header h1 {
-
-    font-size: 38px;
-
-    font-weight: 600;
-
-    margin-bottom: 10px;
-
+h1 {
+    margin-bottom: 8px;
 }
 
 
 header p {
-
     color: #666;
-
-    font-size: 17px;
-
 }
 
 
-/* ========================================= */
-/* INPUT CARD */
-/* ========================================= */
-
-.input-card {
-
+.card {
     background: white;
 
-    border-radius: 14px;
+    border-radius: 12px;
 
-    padding: 30px;
+    padding: 24px;
 
-    box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
 
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
 }
 
-
-/* ========================================= */
-/* SIGNAL SECTION */
-/* ========================================= */
-
-.signal-section {
-
-    margin-bottom: 28px;
-
-}
-
-
-.signal-section h2 {
-
-    font-size: 22px;
-
-    margin-bottom: 18px;
-
-}
-
-
-/* ========================================= */
-/* LABELS */
-/* ========================================= */
 
 label {
-
     display: block;
-
-    font-size: 14px;
 
     font-weight: bold;
 
-    margin-top: 15px;
-
-    margin-bottom: 7px;
-
+    margin: 15px 0 7px;
 }
 
 
-/* ========================================= */
-/* INPUTS */
-/* ========================================= */
-
 input {
-
     width: 100%;
 
-    padding: 14px 15px;
+    padding: 13px;
 
-    border: 1px solid #c8ccd1;
+    border: 1px solid #c9cdd2;
 
     border-radius: 7px;
 
-    background: #fafafa;
+    font-size: 16px;
 
-    color: #202124;
-
-    font-family: Consolas, "Courier New", monospace;
-
-    font-size: 15px;
-
-    outline: none;
-
+    font-family: monospace;
 }
 
 
 input:focus {
+    outline: none;
 
     border-color: #555;
-
-    background: white;
-
 }
 
 
-input::placeholder {
-
-    color: #999;
-
-}
-
-
-/* ========================================= */
-/* CONVOLVE BUTTON */
-/* ========================================= */
-
-#convolve-button {
-
-    width: 100%;
-
-    padding: 16px;
-
-    margin-top: 5px;
-
+button {
     border: none;
 
-    border-radius: 8px;
+    border-radius: 7px;
 
-    background: #222;
-
-    color: white;
-
-    font-size: 17px;
+    padding: 13px 20px;
 
     font-weight: bold;
 
     cursor: pointer;
 
+    margin-top: 20px;
 }
 
 
-#convolve-button:hover {
+#convolveBtn {
+    width: 100%;
 
-    background: #444;
+    background: #202124;
 
+    color: white;
+
+    font-size: 16px;
 }
 
 
-#convolve-button:disabled {
+#convolveBtn:disabled {
+    opacity: 0.55;
 
-    background: #aaa;
-
-    cursor: not-allowed;
-
+    cursor: wait;
 }
 
-
-/* ========================================= */
-/* STATUS */
-/* ========================================= */
 
 #status {
-
     text-align: center;
-
-    margin-top: 15px;
 
     color: #666;
 
-    font-size: 14px;
+    min-height: 20px;
 
+    margin-bottom: 0;
 }
 
-
-/* ========================================= */
-/* RESULT CARD */
-/* ========================================= */
-
-.result-card {
-
-    background: white;
-
-    border-radius: 14px;
-
-    padding: 30px;
-
-    margin-top: 25px;
-
-    box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.08);
-
-}
-
-
-.result-card > h2 {
-
-    margin-bottom: 20px;
-
-    font-size: 24px;
-
-}
-
-
-/* ========================================= */
-/* FIGURE CONTAINER */
-/* ========================================= */
 
 .figure-container {
-
-    width: 100%;
-
     min-height: 350px;
 
-    background: #eeeeee;
+    border: 1px dashed #c9cdd2;
 
-    border: 1px solid #d5d5d5;
+    border-radius: 8px;
 
     display: flex;
 
@@ -291,237 +139,81 @@ input::placeholder {
 
     align-items: center;
 
-    padding: 20px;
+    overflow: auto;
 
+    background: #fafafa;
 }
 
-
-/* ========================================= */
-/* MATPLOTLIB IMAGE */
-/* ========================================= */
 
 .figure-container img {
-
     display: block;
 
-    width: 100%;
-
-    max-width: 1000px;
+    max-width: 100%;
 
     height: auto;
-
 }
 
-
-/* ========================================= */
-/* PLACEHOLDER */
-/* ========================================= */
 
 #placeholder {
-
     color: #777;
-
-    font-size: 15px;
-
 }
 
 
-/* ========================================= */
-/* DOWNLOAD BUTTON */
-/* ========================================= */
-
-.download-button {
-
+#downloadBtn {
     width: 100%;
 
-    padding: 14px;
+    background: #e8eaed;
 
-    margin-top: 20px;
-
-    border: none;
-
-    border-radius: 8px;
-
-    background: #333;
-
-    color: white;
-
-    font-size: 15px;
-
-    font-weight: bold;
-
-    cursor: pointer;
-
+    color: #202124;
 }
 
 
-.download-button:hover {
-
-    background: #555;
-
-}
-
-
-.download-button:disabled {
-
-    background: #aaa;
+#downloadBtn:disabled {
+    opacity: 0.5;
 
     cursor: not-allowed;
-
 }
 
 
-/* ========================================= */
-/* NUMERICAL OUTPUT */
-/* ========================================= */
-
-details {
-
-    margin-top: 25px;
-
-}
-
-
-summary {
-
+details summary {
     cursor: pointer;
 
     font-weight: bold;
-
-    padding: 10px 0;
-
 }
 
 
 pre {
-
-    margin-top: 10px;
-
-    background: #111;
-
-    color: #eee;
-
-    padding: 20px;
-
-    border-radius: 8px;
+    max-height: 350px;
 
     overflow: auto;
 
-    max-height: 450px;
+    background: #f4f6f8;
 
-    font-family: Consolas, "Courier New", monospace;
+    padding: 15px;
 
-    font-size: 13px;
+    border-radius: 7px;
 
-    line-height: 1.5;
-
+    font-size: 12px;
 }
 
 
-/* ========================================= */
-/* PATCH NOTES */
-/* ========================================= */
+.patch code {
+    background: #eef0f2;
 
-.patch-notes {
+    padding: 2px 4px;
 
-    background: white;
-
-    border-radius: 14px;
-
-    padding: 22px 28px;
-
-    margin-top: 25px;
-
-    box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.08);
-
+    border-radius: 3px;
 }
 
-
-.patch-notes h2 {
-
-    font-size: 20px;
-
-    margin-bottom: 12px;
-
-}
-
-
-.patch-notes ul {
-
-    padding-left: 20px;
-
-}
-
-
-.patch-notes li {
-
-    margin-bottom: 7px;
-
-    color: #555;
-
-    font-size: 14px;
-
-    line-height: 1.4;
-
-}
-
-
-.patch-notes code {
-
-    background: #f0f0f0;
-
-    padding: 2px 5px;
-
-    border-radius: 4px;
-
-    font-family: Consolas, "Courier New", monospace;
-
-    color: #222;
-
-}
-
-
-/* ========================================= */
-/* MOBILE */
-/* ========================================= */
 
 @media (max-width: 600px) {
 
-    body {
-
-        padding: 20px 10px;
-
+    .container {
+        margin: 20px auto;
     }
 
-
-    header h1 {
-
-        font-size: 28px;
-
-    }
-
-
-    header p {
-
-        font-size: 15px;
-
-    }
-
-
-    .input-card,
-    .result-card,
-    .patch-notes {
-
-        padding: 20px;
-
-    }
-
-
-    input {
-
-        font-size: 13px;
-
+    .card {
+        padding: 18px;
     }
 
 }
