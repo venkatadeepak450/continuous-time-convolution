@@ -1,247 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Continuous-Time Convolution</title>
 
     <link rel="stylesheet" href="style.css">
-
-    <!-- Pyodide: Python running inside the browser -->
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.28.2/full/pyodide.js"></script>
-
 </head>
-
 
 <body>
 
+<div class="container">
 
-    <div class="container">
-
-
-        <!-- ========================================= -->
-        <!-- HEADER -->
-        <!-- ========================================= -->
-
-        <header>
-
-            <h1>Continuous-Time Convolution</h1>
-
-            <p>
-                Enter two Python functions and a common linspace
-            </p>
-
-        </header>
+    <header>
+        <h1>Continuous-Time Convolution</h1>
+        <p>Enter two functions and a common NumPy linspace.</p>
+    </header>
 
 
-        <!-- ========================================= -->
-        <!-- INPUT SECTION -->
-        <!-- ========================================= -->
+    <main>
 
-        <section class="input-card">
+        <section class="card">
 
+            <label for="xFunction">Signal x(t)</label>
 
-            <!-- ===================================== -->
-            <!-- x(t) -->
-            <!-- ===================================== -->
-
-            <div class="signal-section">
-
-                <h2>Signal x(t)</h2>
-
-
-                <label for="x-function">
-                    Python Function
-                </label>
-
-                <input
-                    id="x-function"
-                    type="text"
-                    value="np.sin(t)"
-                    placeholder="Example: np.sin(t)"
-                    spellcheck="false"
-                >
-
-            </div>
-
-
-            <!-- ===================================== -->
-            <!-- h(t) -->
-            <!-- ===================================== -->
-
-            <div class="signal-section">
-
-                <h2>Signal h(t)</h2>
-
-
-                <label for="h-function">
-                    Python Function
-                </label>
-
-                <input
-                    id="h-function"
-                    type="text"
-                    value="np.exp(-t**2)"
-                    placeholder="Example: np.exp(-t**2)"
-                    spellcheck="false"
-                >
-
-            </div>
-
-
-            <!-- ===================================== -->
-            <!-- COMMON LINSPACE -->
-            <!-- ===================================== -->
-
-            <div class="signal-section">
-
-                <h2>Common Linspace</h2>
-
-
-                <label for="linspace">
-                    Linspace
-                </label>
-
-                <input
-                    id="linspace"
-                    type="text"
-                    value="np.linspace(-10, 10, 1000)"
-                    placeholder="Example: np.linspace(-10, 10, 1000)"
-                    spellcheck="false"
-                >
-
-            </div>
-
-
-            <!-- ===================================== -->
-            <!-- BUTTON -->
-            <!-- ===================================== -->
-
-            <button
-                id="convolve-button"
-                disabled
+            <input
+                id="xFunction"
+                type="text"
+                value="sp.sin(t)"
+                spellcheck="false"
             >
+
+
+            <label for="hFunction">Signal h(t)</label>
+
+            <input
+                id="hFunction"
+                type="text"
+                value="sp.exp(-t**2)"
+                spellcheck="false"
+            >
+
+
+            <label for="linspace">Common Linspace</label>
+
+            <input
+                id="linspace"
+                type="text"
+                value="np.linspace(-20, 20, 1000)"
+                spellcheck="false"
+            >
+
+
+            <button id="convolveBtn">
                 CONVOLVE
             </button>
 
-
-            <!-- ===================================== -->
-            <!-- STATUS -->
-            <!-- ===================================== -->
-
-            <div id="status">
-                Loading Python and Matplotlib...
-            </div>
-
+            <p id="status">Loading Python environment...</p>
 
         </section>
 
 
-        <!-- ========================================= -->
-        <!-- OUTPUT SECTION -->
-        <!-- ========================================= -->
-
-        <section class="result-card">
-
+        <section class="card">
 
             <h2>Output</h2>
 
-
-            <!-- ===================================== -->
-            <!-- FIGURE -->
-            <!-- ===================================== -->
-
-            <div
-                id="figure-container"
-                class="figure-container"
-            >
+            <div id="figureContainer" class="figure-container">
 
                 <p id="placeholder">
-                    Your Matplotlib figure will appear here.
+                    Your convolution figure will appear here.
                 </p>
 
             </div>
 
 
-            <!-- ===================================== -->
-            <!-- DOWNLOAD -->
-            <!-- ===================================== -->
-
-            <button
-                id="download-button"
-                class="download-button"
-                disabled
-            >
+            <button id="downloadBtn" disabled>
                 DOWNLOAD FIGURE
             </button>
-
-
-            <!-- ===================================== -->
-            <!-- NUMERICAL OUTPUT -->
-            <!-- ===================================== -->
-
-            <details>
-
-                <summary>
-                    Show numerical convolution values
-                </summary>
-
-
-                <pre id="output"></pre>
-
-            </details>
-
 
         </section>
 
 
-        <!-- ========================================= -->
-        <!-- PATCH NOTES -->
-        <!-- ========================================= -->
+        <section class="card">
 
-        <section class="patch-notes">
+            <details>
+
+                <summary>
+                    Numerical values
+                </summary>
+
+                <pre id="values"></pre>
+
+            </details>
+
+        </section>
+
+
+        <section class="card patch">
 
             <h2>Patch Notes</h2>
 
             <ul>
 
                 <li>
-                    Enter valid Python/NumPy expressions only.
+                    Use SymPy expressions such as
+                    <code>sp.sin(t)</code>.
                 </li>
 
                 <li>
-                    Use <b>t</b> as the variable in both x(t) and h(t).
+                    Use <code>t</code> as the variable.
                 </li>
 
                 <li>
-                    Functions requiring multiple arguments must be written completely.
-                    Example: <code>np.heaviside(t, 1)</code>.
+                    Examples:
+                    <code>sp.sin(t)</code>,
+                    <code>sp.cos(t)</code>,
+                    <code>sp.exp(-t**2)</code>
                 </li>
 
                 <li>
-                    Your function must produce one value for every point in the common linspace.
+                    Step function:
+                    <code>sp.Heaviside(t)</code>
                 </li>
 
                 <li>
-                    Invalid syntax, undefined variables, incompatible array sizes,
-                    or unsupported functions may cause an error.
+                    Linspace format:
+                    <code>np.linspace(start, stop, points)</code>
+                </li>
+
+                <li>
+                    The graph uses the exact range specified
+                    in the common linspace.
                 </li>
 
             </ul>
 
         </section>
 
+    </main>
 
-    </div>
+</div>
 
 
-    <!-- Main JavaScript -->
-    <script src="script.js"></script>
+<!-- Python running directly in the browser -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.28.2/full/pyodide.js"></script>
+
+<script src="script.js"></script>
 
 </body>
-
 </html>
