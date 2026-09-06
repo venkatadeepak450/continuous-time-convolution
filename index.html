@@ -11,7 +11,7 @@
 
     <link rel="stylesheet" href="style.css">
 
-    <!-- Pyodide -->
+    <!-- Pyodide: Python running inside the browser -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.28.2/full/pyodide.js"></script>
 
 </head>
@@ -32,7 +32,7 @@
             <h1>Continuous-Time Convolution</h1>
 
             <p>
-                Enter two Python functions and their linspace values
+                Enter two Python functions and a common linspace
             </p>
 
         </header>
@@ -66,29 +66,16 @@
                     spellcheck="false"
                 >
 
-
-                <label for="x-linspace">
-                    Linspace
-                </label>
-
-                <input
-                    id="x-linspace"
-                    type="text"
-                    value="np.linspace(-10, 10, 1000)"
-                    placeholder="Example: np.linspace(-10, 10, 1000)"
-                    spellcheck="false"
-                >
-
             </div>
 
 
             <!-- ===================================== -->
-            <!-- h(x) -->
+            <!-- h(t) -->
             <!-- ===================================== -->
 
             <div class="signal-section">
 
-                <h2>Signal h(x)</h2>
+                <h2>Signal h(t)</h2>
 
 
                 <label for="h-function">
@@ -98,18 +85,29 @@
                 <input
                     id="h-function"
                     type="text"
-                    value="np.exp(-x**2)"
-                    placeholder="Example: np.exp(-x**2)"
+                    value="np.exp(-t**2)"
+                    placeholder="Example: np.exp(-t**2)"
                     spellcheck="false"
                 >
 
+            </div>
 
-                <label for="h-linspace">
+
+            <!-- ===================================== -->
+            <!-- COMMON LINSPACE -->
+            <!-- ===================================== -->
+
+            <div class="signal-section">
+
+                <h2>Common Linspace</h2>
+
+
+                <label for="linspace">
                     Linspace
                 </label>
 
                 <input
-                    id="h-linspace"
+                    id="linspace"
                     type="text"
                     value="np.linspace(-10, 10, 1000)"
                     placeholder="Example: np.linspace(-10, 10, 1000)"
@@ -191,6 +189,7 @@
                 <summary>
                     Show numerical convolution values
                 </summary>
+
 
                 <pre id="output"></pre>
 
