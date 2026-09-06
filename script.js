@@ -29,14 +29,11 @@ async function loadPython() {
             "matplotlib"
         ]);
 
-        status.textContent =
-            "Ready.";
+        status.textContent = "Ready.";
 
         convolveButton.disabled = false;
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(error);
 
@@ -49,7 +46,7 @@ async function loadPython() {
 
 
 // ============================================================
-// CONVOLUTION
+// PERFORM CONVOLUTION
 // ============================================================
 
 async function performConvolution() {
@@ -74,7 +71,7 @@ async function performConvolution() {
 
 
     // --------------------------------------------------------
-    // INPUT CHECK
+    // CHECK INPUT
     // --------------------------------------------------------
 
     if (
@@ -98,6 +95,8 @@ async function performConvolution() {
 
     output.textContent = "";
 
+    generatedImage = null;
+
     figureContainer.innerHTML =
         "<p id='placeholder'>Generating Matplotlib figure...</p>";
 
@@ -105,7 +104,7 @@ async function performConvolution() {
     try {
 
         // ----------------------------------------------------
-        // SEND USER INPUT TO PYTHON
+        // SEND EXPRESSIONS TO PYTHON
         // ----------------------------------------------------
 
         pyodide.globals.set(
@@ -125,7 +124,7 @@ async function performConvolution() {
 
 
         // ----------------------------------------------------
-        // PYTHON
+        // PYTHON CODE
         // ----------------------------------------------------
 
         const result =
@@ -143,7 +142,7 @@ from io import BytesIO
 
 
 # ==========================================================
-# 1. CREATE THE COMMON TIME ARRAY
+# 1. CREATE THE USER'S COMMON TIME ARRAY
 # ==========================================================
 
 t = np.asarray(
@@ -162,30 +161,37 @@ t = np.asarray(
 # ==========================================================
 
 if t.ndim != 1:
+
     raise ValueError(
-        "The common linspace must produce a 1-D array."
+        "Common linspace must produce a 1-D array."
     )
+
 
 if len(t) < 2:
+
     raise ValueError(
-        "The common linspace must contain at least 2 points."
+        "Common linspace must contain at least 2 points."
     )
 
+
 if not np.all(np.isfinite(t)):
+
     raise ValueError(
-        "The common linspace contains invalid values."
+        "Common linspace contains NaN or infinity."
     )
 
 
 # ==========================================================
-# 3. CHECK THAT t IS INCREASING
+# 3. CHECK THAT t IS STRICTLY INCREASING
 # ==========================================================
 
 dt_values = np.diff(t)
 
+
 if np.any(dt_values <= 0):
+
     raise ValueError(
-        "The common linspace must be strictly increasing."
+        "Common linspace must be strictly increasing."
     )
 
 
@@ -195,14 +201,16 @@ if np.any(dt_values <= 0):
 
 dt = float(dt_values[0])
 
+
 if not np.allclose(
     dt_values,
     dt,
     rtol=1e-8,
     atol=1e-12
 ):
+
     raise ValueError(
-        "The common time array must have uniform spacing."
+        "Common linspace must have uniform spacing."
     )
 
 
@@ -239,35 +247,37 @@ h = np.asarray(
 
 
 # ==========================================================
-# 7. VALIDATE x(t)
+# 7. HANDLE SCALAR OUTPUTS
 # ==========================================================
 
 if x.ndim == 0:
 
-    x = np.full_like(
-        t,
+    x = np.full(
+        t.shape,
         float(x)
     )
 
-elif x.ndim != 1:
+
+if h.ndim == 0:
+
+    h = np.full(
+        t.shape,
+        float(h)
+    )
+
+
+# ==========================================================
+# 8. VALIDATE SIGNAL DIMENSIONS
+# ==========================================================
+
+if x.ndim != 1:
 
     raise ValueError(
         "x(t) must produce a 1-D array."
     )
 
 
-# ==========================================================
-# 8. VALIDATE h(t)
-# ==========================================================
-
-if h.ndim == 0:
-
-    h = np.full_like(
-        t,
-        float(h)
-    )
-
-elif h.ndim != 1:
+if h.ndim != 1:
 
     raise ValueError(
         "h(t) must produce a 1-D array."
@@ -275,7 +285,7 @@ elif h.ndim != 1:
 
 
 # ==========================================================
-# 9. CHECK SIGNAL LENGTHS
+# 9. VALIDATE SIGNAL LENGTHS
 # ==========================================================
 
 if len(x) != len(t):
@@ -283,6 +293,7 @@ if len(x) != len(t):
     raise ValueError(
         "x(t) must produce exactly one value for every t value."
     )
+
 
 if len(h) != len(t):
 
@@ -292,19 +303,20 @@ if len(h) != len(t):
 
 
 # ==========================================================
-# 10. CHECK FOR NaN / INFINITY
+# 10. CHECK SIGNAL VALUES
 # ==========================================================
 
 if not np.all(np.isfinite(x)):
 
     raise ValueError(
-        "x(t) contains NaN or infinite values."
+        "x(t) contains NaN or infinity."
     )
+
 
 if not np.all(np.isfinite(h)):
 
     raise ValueError(
-        "h(t) contains NaN or infinite values."
+        "h(t) contains NaN or infinity."
     )
 
 
@@ -313,9 +325,9 @@ if not np.all(np.isfinite(h)):
 #
 # y(t) = integral x(tau) h(t-tau) d(tau)
 #
-# Sampled approximation:
+# Numerical approximation:
 #
-# y[n] = sum x[k] h[n-k] dt
+# y[n] ≈ sum(x[k] h[n-k]) dt
 # ==========================================================
 
 y_full = (
@@ -324,49 +336,74 @@ y_full = (
         h,
         mode="full"
     )
-    * dt
+    * abs(dt)
 )
 
 
 # ==========================================================
-# 12. ALIGN CONVOLUTION WITH THE USER'S ORIGINAL t ARRAY
+# 12. CREATE THE ACTUAL FULL-CONVOLUTION TIME GRID
 #
-# The full convolution has 2N-1 samples.
+# If the input time array is:
 #
-# Its time axis would mathematically begin at:
+#     t[0] ... t[-1]
 #
-#       t[0] + t[0]
+# then the full convolution time range is:
 #
-# But WE DO NOT USE THAT AXIS FOR THE FINAL GRAPH.
+#     t[0] + t[0]
 #
-# We extract the N samples corresponding to the original
-# user-supplied t interval.
+# to:
+#
+#     t[-1] + t[-1]
+#
+# This grid is ONLY used internally.
 # ==========================================================
 
-N = len(t)
+full_start = float(t[0] + t[0])
 
-start_index = N - 1
-
-end_index = start_index + N
-
-y = y_full[
-    start_index:end_index
-]
+full_time = (
+    full_start
+    +
+    np.arange(len(y_full)) * dt
+)
 
 
 # ==========================================================
-# 13. FINAL SIZE CHECK
+# 13. MAP THE FULL CONVOLUTION ONTO THE USER'S t GRID
+#
+# THIS IS THE IMPORTANT FIX.
+#
+# The FINAL output is evaluated/displayed at exactly:
+#
+#     t
+#
+# supplied by the user.
+#
+# Therefore the graph can NEVER accidentally use
+# the -40 -> +40 full-convolution range.
+# ==========================================================
+
+y = np.interp(
+    t,
+    full_time,
+    y_full,
+    left=0.0,
+    right=0.0
+)
+
+
+# ==========================================================
+# 14. FINAL SIZE CHECK
 # ==========================================================
 
 if len(y) != len(t):
 
     raise ValueError(
-        "Could not align convolution output with the common t array."
+        "Convolution output does not match the common t array."
     )
 
 
 # ==========================================================
-# 14. CREATE MATPLOTLIB FIGURE
+# 15. CREATE MATPLOTLIB FIGURE
 # ==========================================================
 
 fig, ax = plt.subplots(
@@ -376,26 +413,10 @@ fig, ax = plt.subplots(
 
 
 # ==========================================================
-# 15. PLOT AGAINST THE ORIGINAL t
+# 16. PLOT USING THE USER'S t ARRAY
 #
-# THIS IS THE IMPORTANT PART.
-#
-# The x-axis is DIRECTLY:
-#
-#       t
-#
-# which is exactly the user's linspace.
-#
-# If:
-#
-# np.linspace(-20, 10, 1000)
-#
-# then:
-#
-# t[0]  = -20
-# t[-1] =  10
-#
-# Therefore the graph is -20 -> 10.
+# x-axis = EXACTLY t
+# y-axis = convolution evaluated at t
 # ==========================================================
 
 ax.plot(
@@ -406,7 +427,7 @@ ax.plot(
 
 
 # ==========================================================
-# 16. FORCE X-AXIS TO USER'S EXACT RANGE
+# 17. FORCE EXACT X RANGE
 # ==========================================================
 
 ax.set_xlim(
@@ -416,7 +437,22 @@ ax.set_xlim(
 
 
 # ==========================================================
-# 17. LABELS
+# 18. UNIFORMLY SPACED X TICKS
+# ==========================================================
+
+number_of_ticks = 9
+
+x_ticks = np.linspace(
+    float(t[0]),
+    float(t[-1]),
+    number_of_ticks
+)
+
+ax.set_xticks(x_ticks)
+
+
+# ==========================================================
+# 19. LABELS
 # ==========================================================
 
 ax.set_xlabel(
@@ -433,7 +469,7 @@ ax.set_title(
 
 
 # ==========================================================
-# 18. GRID
+# 20. GRID
 # ==========================================================
 
 ax.grid(
@@ -443,7 +479,7 @@ ax.grid(
 
 
 # ==========================================================
-# 19. ZERO AXES
+# ZERO AXES
 # ==========================================================
 
 ax.axhline(
@@ -451,21 +487,24 @@ ax.axhline(
     linewidth=0.8
 )
 
-ax.axvline(
-    0,
-    linewidth=0.8
-)
+
+if float(t[0]) <= 0 <= float(t[-1]):
+
+    ax.axvline(
+        0,
+        linewidth=0.8
+    )
 
 
 # ==========================================================
-# 20. FINAL FIGURE
+# 21. FINALIZE FIGURE
 # ==========================================================
 
 fig.tight_layout()
 
 
 # ==========================================================
-# 21. CONVERT MATPLOTLIB FIGURE TO PNG
+# 22. CONVERT FIGURE TO PNG
 # ==========================================================
 
 buffer = BytesIO()
@@ -488,22 +527,22 @@ image_base64 = base64.b64encode(
 
 
 # ==========================================================
-# 22. NUMERICAL VALUES
+# 23. NUMERICAL OUTPUT
 # ==========================================================
 
 numerical_output = ""
 
-for i in range(N):
+for i in range(len(t)):
 
     numerical_output += (
         f"{i + 1:4d}    "
         f"t = {t[i]: .10f}    "
-        f"y = {y[i]: .10f}\\n"
+        f"y = {y[i]: .10f}\\\\n"
     )
 
 
 # ==========================================================
-# 23. RETURN IMAGE + DATA
+# 24. RETURN IMAGE + NUMERICAL DATA
 # ==========================================================
 
 image_base64 + "\\n---NUMERICAL_DATA---\\n" + numerical_output
@@ -512,7 +551,7 @@ image_base64 + "\\n---NUMERICAL_DATA---\\n" + numerical_output
 
 
         // ====================================================
-        // SEPARATE IMAGE FROM NUMERICAL DATA
+        // SPLIT IMAGE AND DATA
         // ====================================================
 
         const separator =
@@ -557,11 +596,13 @@ image_base64 + "\\n---NUMERICAL_DATA---\\n" + numerical_output
         const image =
             document.createElement("img");
 
+
         image.src =
             generatedImage;
 
+
         image.alt =
-            "Continuous-Time Convolution Matplotlib Figure";
+            "Continuous-Time Convolution";
 
 
         figureContainer.appendChild(
