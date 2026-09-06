@@ -23,6 +23,7 @@ async function loadPython() {
 
         pyodide = await loadPyodide();
 
+
         await pyodide.loadPackage([
             "numpy",
             "matplotlib"
@@ -32,12 +33,14 @@ async function loadPython() {
         status.textContent =
             "Python ready. Enter your signals.";
 
+
         button.disabled = false;
 
 
     } catch (error) {
 
         console.error(error);
+
 
         status.textContent =
             "Failed to load Python or Matplotlib.";
@@ -182,6 +185,53 @@ if len(t) < 2:
     )
 
 
+if not np.all(np.isfinite(t)):
+
+    raise ValueError(
+
+        "The linspace must contain only finite values."
+
+    )
+
+
+# ==================================================
+# CHECK UNIFORM SAMPLING
+# ==================================================
+
+dt_values = np.diff(t)
+
+
+if not np.allclose(
+
+    dt_values,
+
+    dt_values[0]
+
+):
+
+    raise ValueError(
+
+        "The linspace must have uniform spacing."
+
+    )
+
+
+dt = float(
+
+    abs(dt_values[0])
+
+)
+
+
+if dt == 0:
+
+    raise ValueError(
+
+        "The sampling interval cannot be zero."
+
+    )
+
+
 # ==================================================
 # SIGNAL x(t)
 # ==================================================
@@ -235,7 +285,7 @@ if len(x) != len(t):
     raise ValueError(
 
         "x(t) must produce exactly one value "
-        "for every point in the linspace."
+        "for every point in the common linspace."
 
     )
 
@@ -245,37 +295,25 @@ if len(h) != len(t):
     raise ValueError(
 
         "h(t) must produce exactly one value "
-        "for every point in the linspace."
+        "for every point in the common linspace."
 
     )
 
 
-# ==================================================
-# SAMPLING INTERVAL
-# ==================================================
-
-dt = float(
-
-    abs(t[1] - t[0])
-
-)
-
-
-# ==================================================
-# CHECK UNIFORM SAMPLING
-# ==================================================
-
-if not np.allclose(
-
-    np.diff(t),
-
-    np.diff(t)[0]
-
-):
+if not np.all(np.isfinite(x)):
 
     raise ValueError(
 
-        "The linspace must have uniform spacing."
+        "x(t) contains invalid values."
+
+    )
+
+
+if not np.all(np.isfinite(h)):
+
+    raise ValueError(
+
+        "h(t) contains invalid values."
 
     )
 
@@ -299,15 +337,11 @@ y = np.convolve(
 # CONVOLUTION TIME AXIS
 # ==================================================
 
-t_conv = np.linspace(
-
-    t[0] + t[0],
-
-    t[-1] + t[-1],
+t_conv = np.arange(
 
     len(y)
 
-)
+) * dt + t[0] + t[0]
 
 
 # ==================================================
@@ -324,7 +358,7 @@ fig, ax = plt.subplots(
 
 
 # ==================================================
-# PLOT
+# PLOT CONVOLUTION
 # ==================================================
 
 ax.plot(
@@ -339,14 +373,50 @@ ax.plot(
 
 
 # ==================================================
-# DISPLAY RANGE
+# X-AXIS RANGE
 # ==================================================
 
 ax.set_xlim(
 
-    -10,
+    t_conv[0],
 
-    10
+    t_conv[-1]
+
+)
+
+
+# ==================================================
+# READABLE X-AXIS TICKS
+# ==================================================
+
+# Use actual values from t_conv,
+# but select only a readable number of them.
+
+number_of_ticks = min(
+
+    11,
+
+    len(t_conv)
+
+)
+
+
+tick_indices = np.linspace(
+
+    0,
+
+    len(t_conv) - 1,
+
+    number_of_ticks,
+
+    dtype=int
+
+)
+
+
+ax.set_xticks(
+
+    t_conv[tick_indices]
 
 )
 
@@ -540,7 +610,7 @@ numerical_output = "\\n".join(
 
 
         // ==================================================
-        // DISPLAY FIGURE
+        // DISPLAY COMPLETE FIGURE
         // ==================================================
 
         figureContainer.innerHTML = "";
