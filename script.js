@@ -1,136 +1,121 @@
 let pyodide = null;
-let generatedImage = null;
 
-const convolveButton = document.getElementById("convolve-button");
-const downloadButton = document.getElementById("download-button");
-const status = document.getElementById("status");
-const output = document.getElementById("output");
-const figureContainer = document.getElementById("figure-container");
+let currentImage = null;
 
 
-// ============================================================
-// LOAD PYTHON
-// ============================================================
+const convolveBtn =
+    document.getElementById("convolveBtn");
+
+const downloadBtn =
+    document.getElementById("downloadBtn");
+
+const statusText =
+    document.getElementById("status");
+
+const figureContainer =
+    document.getElementById("figureContainer");
+
+const valuesBox =
+    document.getElementById("values");
+
 
 async function loadPython() {
 
-    try {
+    statusText.textContent =
+        "Loading Python, NumPy, SymPy and Matplotlib...";
 
-        status.textContent =
-            "Loading Python and Matplotlib...";
+    convolveBtn.disabled = true;
+
+
+    try {
 
         pyodide = await loadPyodide();
 
-        status.textContent =
-            "Loading NumPy and Matplotlib...";
 
         await pyodide.loadPackage([
             "numpy",
+            "sympy",
             "matplotlib"
         ]);
 
-        status.textContent = "Ready.";
 
-        convolveButton.disabled = false;
+        statusText.textContent = "Ready.";
+
+        convolveBtn.disabled = false;
+
 
     } catch (error) {
 
+        statusText.textContent =
+            "Could not load the Python environment.";
+
         console.error(error);
-
-        status.textContent =
-            "Failed to load Python and Matplotlib.";
-
-        convolveButton.disabled = true;
     }
 }
 
 
-// ============================================================
-// PERFORM CONVOLUTION
-// ============================================================
 
-async function performConvolution() {
+function getInput(id) {
+
+    return document
+        .getElementById(id)
+        .value
+        .trim();
+
+}
+
+
+
+async function convolve() {
 
     if (!pyodide) {
-
-        status.textContent =
-            "Python is still loading...";
-
         return;
     }
 
 
-    const xFunction =
-        document.getElementById("x-function").value.trim();
+    const xExpr =
+        getInput("xFunction");
 
-    const hFunction =
-        document.getElementById("h-function").value.trim();
+    const hExpr =
+        getInput("hFunction");
 
-    const linspaceExpression =
-        document.getElementById("linspace").value.trim();
-
-
-    // --------------------------------------------------------
-    // CHECK INPUT
-    // --------------------------------------------------------
-
-    if (
-        xFunction === "" ||
-        hFunction === "" ||
-        linspaceExpression === ""
-    ) {
-
-        status.textContent =
-            "Please fill in all three fields.";
-
-        return;
-    }
+    const linspaceExpr =
+        getInput("linspace");
 
 
-    convolveButton.disabled = true;
-    downloadButton.disabled = true;
+    convolveBtn.disabled = true;
 
-    status.textContent =
+    downloadBtn.disabled = true;
+
+
+    statusText.textContent =
         "Calculating convolution...";
-
-    output.textContent = "";
-
-    generatedImage = null;
-
-    figureContainer.innerHTML =
-        "<p id='placeholder'>Generating Matplotlib figure...</p>";
 
 
     try {
 
-        // ----------------------------------------------------
-        // SEND EXPRESSIONS TO PYTHON
-        // ----------------------------------------------------
-
         pyodide.globals.set(
-            "x_expression",
-            xFunction
+            "x_input",
+            xExpr
         );
 
         pyodide.globals.set(
-            "h_expression",
-            hFunction
+            "h_input",
+            hExpr
         );
 
         pyodide.globals.set(
-            "t_expression",
-            linspaceExpression
+            "linspace_input",
+            linspaceExpr
         );
 
-
-        // ----------------------------------------------------
-        // PYTHON CODE
-        // ----------------------------------------------------
 
         const result =
             await pyodide.runPythonAsync(`
 
+import sympy as sp
 import numpy as np
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -138,339 +123,324 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import base64
+
 from io import BytesIO
 
 
-# ==========================================================
-# 1. CREATE THE USER'S COMMON TIME ARRAY
-# ==========================================================
+# --------------------------------------------------
+# Symbols
+# --------------------------------------------------
 
-t = np.asarray(
-    eval(
-        t_expression,
-        {
-            "np": np
-        }
-    ),
-    dtype=float
+t = sp.symbols("t", real=True)
+
+tau = sp.symbols("tau", real=True)
+
+
+# --------------------------------------------------
+# SymPy functions allowed in user input
+# --------------------------------------------------
+
+local_dict = {
+
+    "sp": sp,
+
+    "t": t,
+
+    "pi": sp.pi,
+
+    "E": sp.E,
+
+    "sin": sp.sin,
+
+    "cos": sp.cos,
+
+    "tan": sp.tan,
+
+    "asin": sp.asin,
+
+    "acos": sp.acos,
+
+    "atan": sp.atan,
+
+    "sinh": sp.sinh,
+
+    "cosh": sp.cosh,
+
+    "tanh": sp.tanh,
+
+    "exp": sp.exp,
+
+    "sqrt": sp.sqrt,
+
+    "log": sp.log,
+
+    "ln": sp.log,
+
+    "Abs": sp.Abs,
+
+    "sign": sp.sign,
+
+    "Heaviside": sp.Heaviside
+}
+
+
+# --------------------------------------------------
+# Parse x(t) and h(t)
+# --------------------------------------------------
+
+x = sp.sympify(
+    x_input,
+    locals=local_dict
+)
+
+h = sp.sympify(
+    h_input,
+    locals=local_dict
 )
 
 
-# ==========================================================
-# 2. VALIDATE TIME ARRAY
-# ==========================================================
+# Only t is allowed as the variable
 
-if t.ndim != 1:
+if x.free_symbols - {t}:
 
     raise ValueError(
-        "Common linspace must produce a 1-D array."
+        "Only t may be used as a signal variable."
     )
 
 
-if len(t) < 2:
+if h.free_symbols - {t}:
 
     raise ValueError(
-        "Common linspace must contain at least 2 points."
+        "Only t may be used as a signal variable."
     )
 
 
-if not np.all(np.isfinite(t)):
+# --------------------------------------------------
+# Parse np.linspace(...)
+# --------------------------------------------------
 
-    raise ValueError(
-        "Common linspace contains NaN or infinity."
-    )
-
-
-# ==========================================================
-# 3. CHECK THAT t IS STRICTLY INCREASING
-# ==========================================================
-
-dt_values = np.diff(t)
+import re
 
 
-if np.any(dt_values <= 0):
+match = re.fullmatch(
 
-    raise ValueError(
-        "Common linspace must be strictly increasing."
-    )
+    r"\\s*np\\.linspace\\(\\s*(.+?)\\s*,\\s*(.+?)\\s*,\\s*(\\d+)\\s*\\)\\s*",
 
+    linspace_input
 
-# ==========================================================
-# 4. CHECK UNIFORM SPACING
-# ==========================================================
-
-dt = float(dt_values[0])
-
-
-if not np.allclose(
-    dt_values,
-    dt,
-    rtol=1e-8,
-    atol=1e-12
-):
-
-    raise ValueError(
-        "Common linspace must have uniform spacing."
-    )
-
-
-# ==========================================================
-# 5. EVALUATE x(t)
-# ==========================================================
-
-x = np.asarray(
-    eval(
-        x_expression,
-        {
-            "np": np,
-            "t": t
-        }
-    ),
-    dtype=float
 )
 
 
-# ==========================================================
-# 6. EVALUATE h(t)
-# ==========================================================
+if not match:
 
-h = np.asarray(
-    eval(
-        h_expression,
-        {
-            "np": np,
-            "t": t
-        }
-    ),
-    dtype=float
+    raise ValueError(
+        "Linspace must be in the form "
+        "np.linspace(start, stop, points)"
+    )
+
+
+start_expr = sp.sympify(
+    match.group(1),
+    locals=local_dict
 )
 
 
-# ==========================================================
-# 7. HANDLE SCALAR OUTPUTS
-# ==========================================================
-
-if x.ndim == 0:
-
-    x = np.full(
-        t.shape,
-        float(x)
-    )
-
-
-if h.ndim == 0:
-
-    h = np.full(
-        t.shape,
-        float(h)
-    )
-
-
-# ==========================================================
-# 8. VALIDATE SIGNAL DIMENSIONS
-# ==========================================================
-
-if x.ndim != 1:
-
-    raise ValueError(
-        "x(t) must produce a 1-D array."
-    )
-
-
-if h.ndim != 1:
-
-    raise ValueError(
-        "h(t) must produce a 1-D array."
-    )
-
-
-# ==========================================================
-# 9. VALIDATE SIGNAL LENGTHS
-# ==========================================================
-
-if len(x) != len(t):
-
-    raise ValueError(
-        "x(t) must produce exactly one value for every t value."
-    )
-
-
-if len(h) != len(t):
-
-    raise ValueError(
-        "h(t) must produce exactly one value for every t value."
-    )
-
-
-# ==========================================================
-# 10. CHECK SIGNAL VALUES
-# ==========================================================
-
-if not np.all(np.isfinite(x)):
-
-    raise ValueError(
-        "x(t) contains NaN or infinity."
-    )
-
-
-if not np.all(np.isfinite(h)):
-
-    raise ValueError(
-        "h(t) contains NaN or infinity."
-    )
-
-
-# ==========================================================
-# 11. CONTINUOUS-TIME CONVOLUTION
-#
-# y(t) = integral x(tau) h(t-tau) d(tau)
-#
-# Numerical approximation:
-#
-# y[n] ≈ sum(x[k] h[n-k]) dt
-# ==========================================================
-
-y_full = (
-    np.convolve(
-        x,
-        h,
-        mode="full"
-    )
-    * abs(dt)
+stop_expr = sp.sympify(
+    match.group(2),
+    locals=local_dict
 )
 
 
-# ==========================================================
-# 12. CREATE THE ACTUAL FULL-CONVOLUTION TIME GRID
-#
-# If the input time array is:
-#
-#     t[0] ... t[-1]
-#
-# then the full convolution time range is:
-#
-#     t[0] + t[0]
-#
-# to:
-#
-#     t[-1] + t[-1]
-#
-# This grid is ONLY used internally.
-# ==========================================================
+start = float(start_expr)
 
-full_start = float(t[0] + t[0])
+stop = float(stop_expr)
 
-full_time = (
-    full_start
-    +
-    np.arange(len(y_full)) * dt
+N = int(match.group(3))
+
+
+if N < 2:
+
+    raise ValueError(
+        "Linspace must contain at least 2 points."
+    )
+
+
+if stop <= start:
+
+    raise ValueError(
+        "Linspace stop must be greater than start."
+    )
+
+
+# --------------------------------------------------
+# User's exact time array
+# --------------------------------------------------
+
+t_values = np.linspace(
+    start,
+    stop,
+    N
 )
 
 
-# ==========================================================
-# 13. MAP THE FULL CONVOLUTION ONTO THE USER'S t GRID
+# --------------------------------------------------
+# Continuous-time convolution
 #
-# THIS IS THE IMPORTANT FIX.
-#
-# The FINAL output is evaluated/displayed at exactly:
-#
-#     t
-#
-# supplied by the user.
-#
-# Therefore the graph can NEVER accidentally use
-# the -40 -> +40 full-convolution range.
-# ==========================================================
+# y(t) = integral x(tau) h(t-tau) dtau
+# --------------------------------------------------
 
-y = np.interp(
+x_tau = x.subs(
     t,
-    full_time,
-    y_full,
-    left=0.0,
-    right=0.0
+    tau
 )
 
 
-# ==========================================================
-# 14. FINAL SIZE CHECK
-# ==========================================================
+h_shifted = h.subs(
+    t,
+    t - tau
+)
 
-if len(y) != len(t):
 
-    raise ValueError(
-        "Convolution output does not match the common t array."
+integrand = (
+    x_tau *
+    h_shifted
+)
+
+
+f = sp.lambdify(
+    (tau, t),
+    integrand,
+    modules=["numpy"]
+)
+
+
+# Integration points
+
+tau_values = np.linspace(
+
+    start,
+    stop,
+
+    max(
+        3000,
+        min(
+            7000,
+            N * 5
+        )
+    )
+)
+
+
+y_values = np.empty(
+    N,
+    dtype=float
+)
+
+
+# --------------------------------------------------
+# Numerical integration
+# --------------------------------------------------
+
+for i, tv in enumerate(t_values):
+
+    values = np.asarray(
+
+        f(
+            tau_values,
+            tv
+        ),
+
+        dtype=float
     )
 
 
-# ==========================================================
-# 15. CREATE MATPLOTLIB FIGURE
-# ==========================================================
+    if values.ndim == 0:
+
+        values = np.full(
+            tau_values.shape,
+            float(values)
+        )
+
+
+    values = np.nan_to_num(
+        values
+    )
+
+
+    if hasattr(
+        np,
+        "trapezoid"
+    ):
+
+        y_values[i] = np.trapezoid(
+            values,
+            tau_values
+        )
+
+    else:
+
+        y_values[i] = np.trapz(
+            values,
+            tau_values
+        )
+
+
+# --------------------------------------------------
+# Create Matplotlib figure
+# --------------------------------------------------
 
 fig, ax = plt.subplots(
-    figsize=(10, 6),
-    dpi=150
+
+    figsize=(10, 5.5),
+
+    dpi=130
 )
 
 
-# ==========================================================
-# 16. PLOT USING THE USER'S t ARRAY
-#
-# x-axis = EXACTLY t
-# y-axis = convolution evaluated at t
-# ==========================================================
-
 ax.plot(
-    t,
-    y,
+
+    t_values,
+
+    y_values,
+
     linewidth=2
 )
 
 
-# ==========================================================
-# 17. FORCE EXACT X RANGE
-# ==========================================================
+# IMPORTANT:
+# The visible graph uses the user's exact
+# linspace range.
 
 ax.set_xlim(
-    float(t[0]),
-    float(t[-1])
+    start,
+    stop
 )
 
 
-# ==========================================================
-# 18. UNIFORMLY SPACED X TICKS
-# ==========================================================
+ax.set_xticks(
 
-number_of_ticks = 9
-
-x_ticks = np.linspace(
-    float(t[0]),
-    float(t[-1]),
-    number_of_ticks
+    np.linspace(
+        start,
+        stop,
+        9
+    )
 )
 
-ax.set_xticks(x_ticks)
-
-
-# ==========================================================
-# 19. LABELS
-# ==========================================================
 
 ax.set_xlabel(
     "Time (t)"
 )
 
+
 ax.set_ylabel(
     "Amplitude"
 )
+
 
 ax.set_title(
     "Continuous-Time Convolution"
 )
 
-
-# ==========================================================
-# 20. GRID
-# ==========================================================
 
 ax.grid(
     True,
@@ -478,17 +448,13 @@ ax.grid(
 )
 
 
-# ==========================================================
-# ZERO AXES
-# ==========================================================
-
 ax.axhline(
     0,
     linewidth=0.8
 )
 
 
-if float(t[0]) <= 0 <= float(t[-1]):
+if start <= 0 <= stop:
 
     ax.axvline(
         0,
@@ -496,98 +462,107 @@ if float(t[0]) <= 0 <= float(t[-1]):
     )
 
 
-# ==========================================================
-# 21. FINALIZE FIGURE
-# ==========================================================
-
 fig.tight_layout()
 
 
-# ==========================================================
-# 22. CONVERT FIGURE TO PNG
-# ==========================================================
+# --------------------------------------------------
+# Convert Matplotlib figure to PNG
+# --------------------------------------------------
 
 buffer = BytesIO()
 
+
 fig.savefig(
+
     buffer,
+
     format="png",
-    dpi=150,
+
     bbox_inches="tight"
 )
 
+
 plt.close(fig)
 
-buffer.seek(0)
+
+image_b64 = base64.b64encode(
+
+    buffer.getvalue()
+
+).decode("ascii")
 
 
-image_base64 = base64.b64encode(
-    buffer.read()
-).decode("utf-8")
+# --------------------------------------------------
+# Numerical values
+# --------------------------------------------------
+
+sample_step = max(
+    1,
+    N // 200
+)
 
 
-# ==========================================================
-# 23. NUMERICAL OUTPUT
-# ==========================================================
+result = {
 
-numerical_output = ""
+    "image": image_b64,
 
-for i in range(len(t)):
+    "t":
+        t_values[
+            ::sample_step
+        ].tolist(),
 
-    numerical_output += (
-        f"{i + 1:4d}    "
-        f"t = {t[i]: .10f}    "
-        f"y = {y[i]: .10f}\\\\n"
-    )
+    "y":
+        y_values[
+            ::sample_step
+        ].tolist(),
 
-
-# ==========================================================
-# 24. RETURN IMAGE + NUMERICAL DATA
-# ==========================================================
-
-image_base64 + "\\n---NUMERICAL_DATA---\\n" + numerical_output
-
-            `);
+    "count":
+        int(N)
+}
 
 
-        // ====================================================
-        // SPLIT IMAGE AND DATA
-        // ====================================================
+result
 
-        const separator =
-            "\n---NUMERICAL_DATA---\n";
-
-        const separatorIndex =
-            result.indexOf(separator);
+        `);
 
 
-        if (separatorIndex === -1) {
+        // --------------------------------------------------
+        // Display PNG
+        // --------------------------------------------------
 
-            throw new Error(
-                "Invalid result returned from Python."
+        const imageBytes =
+            Uint8Array.from(
+
+                atob(result.image),
+
+                c => c.charCodeAt(0)
+
             );
+
+
+        const blob =
+            new Blob(
+
+                [imageBytes],
+
+                {
+                    type: "image/png"
+                }
+
+            );
+
+
+        if (currentImage) {
+
+            URL.revokeObjectURL(
+                currentImage
+            );
+
         }
 
 
-        const imageBase64 =
-            result.substring(
-                0,
-                separatorIndex
-            );
-
-        const numericalData =
-            result.substring(
-                separatorIndex + separator.length
-            );
-
-
-        // ====================================================
-        // DISPLAY FIGURE
-        // ====================================================
-
-        generatedImage =
-            "data:image/png;base64," +
-            imageBase64;
+        currentImage =
+            URL.createObjectURL(blob);
 
 
         figureContainer.innerHTML = "";
@@ -598,11 +573,11 @@ image_base64 + "\\n---NUMERICAL_DATA---\\n" + numerical_output
 
 
         image.src =
-            generatedImage;
+            currentImage;
 
 
         image.alt =
-            "Continuous-Time Convolution";
+            "Continuous-time convolution";
 
 
         figureContainer.appendChild(
@@ -610,103 +585,139 @@ image_base64 + "\\n---NUMERICAL_DATA---\\n" + numerical_output
         );
 
 
-        // ====================================================
-        // DISPLAY NUMERICAL DATA
-        // ====================================================
-
-        output.textContent =
-            numericalData;
+        downloadBtn.disabled = false;
 
 
-        // ====================================================
-        // ENABLE DOWNLOAD
-        // ====================================================
+        // --------------------------------------------------
+        // Numerical output
+        // --------------------------------------------------
 
-        downloadButton.disabled = false;
+        let text =
+            `Total points: ${result.count}\\n\\n`;
+
+        text +=
+            "t\\ty(t)\\n";
+
+        text +=
+            "-------------------------\\n";
 
 
-        status.textContent =
-            "Convolution completed successfully.";
+        for (
+            let i = 0;
+            i < result.t.length;
+            i++
+        ) {
 
-    }
+            text +=
+                `${Number(result.t[i]).toFixed(8)}\\t` +
+                `${Number(result.y[i]).toFixed(8)}\\n`;
+
+        }
 
 
-    catch (error) {
+        if (
+            result.t.length <
+            result.count
+        ) {
+
+            text +=
+                `\\nShowing every ${
+                    Math.ceil(
+                        result.count /
+                        result.t.length
+                    )
+                }th point.`;
+
+        }
+
+
+        valuesBox.textContent =
+            text;
+
+
+        statusText.textContent =
+            "Convolution complete.";
+
+
+    } catch (error) {
 
         console.error(error);
 
-        figureContainer.innerHTML =
-            "<p id='placeholder'>Error while calculating convolution.</p>";
 
-        output.textContent = "";
-
-        status.textContent =
+        statusText.textContent =
             "Error: " + error.message;
+
+
+        figureContainer.innerHTML =
+            '<p id="placeholder">' +
+            'Could not calculate the convolution.' +
+            '</p>';
+
+
+        valuesBox.textContent = "";
+
+
+    } finally {
+
+        convolveBtn.disabled = false;
+
     }
 
-
-    finally {
-
-        convolveButton.disabled = false;
-    }
 }
 
 
-// ============================================================
-// DOWNLOAD FIGURE
-// ============================================================
 
-function downloadFigure() {
+// --------------------------------------------------
+// Download PNG
+// --------------------------------------------------
 
-    if (!generatedImage) {
-        return;
+downloadBtn.addEventListener(
+    "click",
+    () => {
+
+        if (!currentImage) {
+            return;
+        }
+
+
+        const link =
+            document.createElement("a");
+
+
+        link.href =
+            currentImage;
+
+
+        link.download =
+            "continuous_time_convolution.png";
+
+
+        document.body.appendChild(link);
+
+
+        link.click();
+
+
+        link.remove();
+
     }
-
-
-    const link =
-        document.createElement("a");
-
-
-    link.href =
-        generatedImage;
-
-
-    link.download =
-        "continuous_time_convolution.png";
-
-
-    document.body.appendChild(
-        link
-    );
-
-
-    link.click();
-
-
-    document.body.removeChild(
-        link
-    );
-}
-
-
-// ============================================================
-// BUTTON EVENTS
-// ============================================================
-
-convolveButton.addEventListener(
-    "click",
-    performConvolution
 );
 
 
-downloadButton.addEventListener(
+
+// --------------------------------------------------
+// Convolve button
+// --------------------------------------------------
+
+convolveBtn.addEventListener(
     "click",
-    downloadFigure
+    convolve
 );
 
 
-// ============================================================
-// START PYTHON
-// ============================================================
+
+// --------------------------------------------------
+// Start Python environment
+// --------------------------------------------------
 
 loadPython();
