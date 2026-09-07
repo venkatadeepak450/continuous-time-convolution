@@ -9,24 +9,32 @@ const valuesBox = document.getElementById("values");
 
 
 function getInput(id) {
-    return document.getElementById(id).value.trim();
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+}
+
+
+function setStatus(text) {
+    statusText.textContent = text;
 }
 
 
 /* =========================================================
-   LOAD PYTHON / SYMPY / NUMPY / MATPLOTLIB
+   LOAD PYTHON / NUMPY / SYMPY / MATPLOTLIB
    ========================================================= */
 
 async function loadPython() {
 
-    statusText.textContent =
-        "Loading Python, NumPy, SymPy and Matplotlib...";
-
     convolveBtn.disabled = true;
+
+    setStatus(
+        "Loading Python, NumPy, SymPy and Matplotlib..."
+    );
 
     try {
 
         if (typeof loadPyodide !== "function") {
+
             throw new Error(
                 "Pyodide did not load. Check your internet connection."
             );
@@ -40,16 +48,18 @@ async function loadPython() {
             "matplotlib"
         ]);
 
-        statusText.textContent = "Ready.";
-
         convolveBtn.disabled = false;
+
+        setStatus("Ready.");
 
     } catch (error) {
 
         console.error(error);
 
-        statusText.textContent =
-            "Could not load Python: " + error.message;
+        setStatus(
+            "Could not load Python: " +
+            error.message
+        );
     }
 }
 
@@ -61,26 +71,46 @@ async function loadPython() {
 async function convolve() {
 
     if (!pyodide) {
-        return;
-    }
 
-    const xExpr = getInput("xFunction");
-    const hExpr = getInput("hFunction");
-    const linspaceExpr = getInput("linspace");
-
-    if (!xExpr || !hExpr || !linspaceExpr) {
-
-        statusText.textContent =
-            "Please fill all three inputs.";
+        setStatus(
+            "Python is still loading."
+        );
 
         return;
     }
+
+
+    const xExpr =
+        getInput("xFunction");
+
+    const hExpr =
+        getInput("hFunction");
+
+    const linspaceExpr =
+        getInput("linspace");
+
+
+    if (
+        !xExpr ||
+        !hExpr ||
+        !linspaceExpr
+    ) {
+
+        setStatus(
+            "Please fill all three inputs."
+        );
+
+        return;
+    }
+
 
     convolveBtn.disabled = true;
+
     downloadBtn.disabled = true;
 
-    statusText.textContent =
-        "Calculating convolution...";
+    setStatus(
+        "Calculating convolution..."
+    );
 
 
     try {
@@ -135,7 +165,7 @@ tau = sp.symbols(
 
 
 # =========================================================
-# ALLOWED SYMPY FUNCTIONS
+# SYMPY FUNCTIONS
 # =========================================================
 
 local_dict = {
@@ -189,89 +219,101 @@ local_dict = {
 
 
 # =========================================================
-# FIX COMMON LOWERCASE INPUT
+# NORMALIZE COMMON INPUT SPELLINGS
 # =========================================================
 
-x_input = re.sub(
-    r"(?i)\\\\bsp\\\\.heaviside\\\\b",
-    "sp.Heaviside",
+def normalize(text):
+
+    text = re.sub(
+        r"(?i)\\bsp\\.heaviside\\b",
+        "sp.Heaviside",
+        text
+    )
+
+    text = re.sub(
+        r"(?i)\\bsp\\.diracdelta\\b",
+        "sp.DiracDelta",
+        text
+    )
+
+    return text
+
+
+x_input_clean = normalize(
     x_input
 )
 
-h_input = re.sub(
-    r"(?i)\\\\bsp\\\\.heaviside\\\\b",
-    "sp.Heaviside",
-    h_input
-)
-
-x_input = re.sub(
-    r"(?i)\\\\bsp\\\\.diracdelta\\\\b",
-    "sp.DiracDelta",
-    x_input
-)
-
-h_input = re.sub(
-    r"(?i)\\\\bsp\\\\.diracdelta\\\\b",
-    "sp.DiracDelta",
+h_input_clean = normalize(
     h_input
 )
 
 
 # =========================================================
-# PARSE x(t) AND h(t)
+# PARSE SIGNALS
 # =========================================================
 
 try:
 
     x = sp.sympify(
-        x_input,
+        x_input_clean,
         locals=local_dict
     )
 
     h = sp.sympify(
-        h_input,
+        h_input_clean,
         locals=local_dict
     )
 
 except Exception as e:
 
     raise ValueError(
-        "Invalid SymPy expression."
+        "Invalid SymPy expression. "
+        "Examples: sp.sin(t), "
+        "sp.exp(-t**2), "
+        "sp.Heaviside(t), "
+        "sp.DiracDelta(t)."
     ) from e
 
 
 # =========================================================
-# ONLY t IS ALLOWED AS A SIGNAL VARIABLE
+# CHECK VARIABLES
 # =========================================================
 
 if x.free_symbols - {t}:
 
     raise ValueError(
-        "x(t) may contain only the variable t."
+        "x(t) may contain only t."
     )
 
 
 if h.free_symbols - {t}:
 
     raise ValueError(
-        "h(t) may contain only the variable t."
+        "h(t) may contain only t."
     )
 
 
 # =========================================================
-# PARSE np.linspace(start, stop, points)
+# PARSE LINSPACE
 # =========================================================
 
-linspace_pattern = (
-    r"^\\\\s*np\\\\.linspace\\\\("
-    r"\\\\s*(.+?)\\\\s*,"
-    r"\\\\s*(.+?)\\\\s*,"
-    r"\\\\s*(\\\\d+)\\\\s*"
-    r"\\\\)\\\\s*$"
+pattern = (
+
+    r"^\\s*np\\.linspace\\("
+
+    r"\\s*(.+?)\\s*,"
+
+    r"\\s*(.+?)\\s*,"
+
+    r"\\s*(\\d+)\\s*"
+
+    r"\\)\\s*$"
+
 )
 
+
 match = re.fullmatch(
-    linspace_pattern,
+    pattern,
     linspace_input
 )
 
@@ -279,46 +321,33 @@ match = re.fullmatch(
 if not match:
 
     raise ValueError(
-        "Use exactly: "
-        "np.linspace(start, stop, points)"
+        "Use np.linspace(start, stop, points)."
     )
 
 
-start_text = match.group(1).strip()
-
-stop_text = match.group(2).strip()
-
-points_text = match.group(3).strip()
-
-
-try:
-
-    start = float(
-        sp.N(
-            sp.sympify(
-                start_text,
-                locals=local_dict
-            )
+start = float(
+    sp.N(
+        sp.sympify(
+            match.group(1),
+            locals=local_dict
         )
     )
+)
 
-    stop = float(
-        sp.N(
-            sp.sympify(
-                stop_text,
-                locals=local_dict
-            )
+
+stop = float(
+    sp.N(
+        sp.sympify(
+            match.group(2),
+            locals=local_dict
         )
     )
+)
 
-    N = int(points_text)
 
-
-except Exception as e:
-
-    raise ValueError(
-        "Invalid np.linspace values."
-    ) from e
+N = int(
+    match.group(3)
+)
 
 
 if not np.isfinite(start):
@@ -361,120 +390,41 @@ t_values = np.linspace(
 
 
 # =========================================================
-# DIRAC DELTA DETECTION
+# NUMERICAL EVALUATION HELPER
 # =========================================================
 
-has_delta = (
-    x.has(sp.DiracDelta) or
-    h.has(sp.DiracDelta)
-)
+def evaluate_expression(expr):
 
-
-# =========================================================
-# SYMBOLIC CONTINUOUS-TIME CONVOLUTION
-#
-# y(t) = integral x(tau) h(t-tau) dtau
-#
-# SymPy is used first. This is especially important
-# for DiracDelta because an impulse should NOT be
-# sampled as an ordinary numerical function.
-# =========================================================
-
-if has_delta:
-
-    x_tau = x.subs(
+    fn = sp.lambdify(
         t,
-        tau
+        expr,
+        modules=["numpy"]
     )
 
-    h_shifted = h.subs(
-        t,
-        t - tau
-    )
-
-    integrand = (
-        x_tau *
-        h_shifted
-    )
-
-    try:
-
-        symbolic_y = sp.integrate(
-            integrand,
-            (tau, -sp.oo, sp.oo)
-        )
-
-    except Exception:
-
-        symbolic_y = sp.Integral(
-            integrand,
-            (tau, -sp.oo, sp.oo)
-        )
-
-
-    if isinstance(
-        symbolic_y,
-        sp.Integral
-    ):
-
-        # Try SymPy's convolution implementation
-        try:
-
-            symbolic_y = sp.convolution(
-                x,
-                h,
-                t
-            )
-
-        except Exception:
-
-            raise ValueError(
-                "SymPy could not symbolically evaluate "
-                "the DiracDelta convolution. "
-                "Try a simpler expression."
-            )
-
-
-    symbolic_y = sp.simplify(
-        symbolic_y
+    values = np.asarray(
+        fn(t_values),
+        dtype=float
     )
 
 
-    # -----------------------------------------------------
-    # Numerical evaluation of symbolic result
-    # -----------------------------------------------------
+    if values.ndim == 0:
 
-    try:
-
-        y_func = sp.lambdify(
-            t,
-            symbolic_y,
-            modules=["numpy"]
+        values = np.full(
+            t_values.shape,
+            float(values)
         )
 
-        y_values = np.asarray(
-            y_func(t_values),
-            dtype=float
-        )
 
-    except Exception as e:
+    if values.shape != t_values.shape:
 
         raise ValueError(
-            "The symbolic convolution could not "
-            "be evaluated numerically."
-        ) from e
-
-
-    if y_values.ndim == 0:
-
-        y_values = np.full(
-            t_values.shape,
-            float(y_values)
+            "Expression did not produce "
+            "one value per t point."
         )
 
 
-    y_values = np.nan_to_num(
-        y_values,
+    return np.nan_to_num(
+        values,
         nan=0.0,
         posinf=0.0,
         neginf=0.0
@@ -482,20 +432,342 @@ if has_delta:
 
 
 # =========================================================
-# ORDINARY FUNCTIONS
-#
-# Numerical continuous-time convolution
+# DIRAC DELTA INFORMATION
+# =========================================================
+
+def delta_info(expr):
+
+    deltas = list(
+        expr.atoms(
+            sp.DiracDelta
+        )
+    )
+
+
+    if len(deltas) != 1:
+
+        return None
+
+
+    delta = deltas[0]
+
+    argument = delta.args[0]
+
+    derivative = sp.simplify(
+        sp.diff(
+            argument,
+            t
+        )
+    )
+
+
+    if derivative == 0:
+
+        return None
+
+
+    if not derivative.is_number:
+
+        return None
+
+
+    roots = sp.solve(
+        sp.Eq(
+            argument,
+            0
+        ),
+        t
+    )
+
+
+    if len(roots) != 1:
+
+        return None
+
+
+    location = sp.simplify(
+        roots[0]
+    )
+
+
+    scale = sp.simplify(
+        1 /
+        sp.Abs(
+            derivative
+        )
+    )
+
+
+    return (
+        delta,
+        location,
+        scale
+    )
+
+
+# =========================================================
+# SIMPLE DIRAC DELTA CONVOLUTION
+# =========================================================
+
+def delta_convolution(
+    x_expr,
+    h_expr
+):
+
+    x_deltas = list(
+        x_expr.atoms(
+            sp.DiracDelta
+        )
+    )
+
+    h_deltas = list(
+        h_expr.atoms(
+            sp.DiracDelta
+        )
+    )
+
+
+    # Both containing delta:
+    # handle separately below only if possible.
+
+    if x_deltas and h_deltas:
+
+        if (
+            len(x_deltas) == 1 and
+            len(h_deltas) == 1
+        ):
+
+            xi = delta_info(
+                x_expr
+            )
+
+            hi = delta_info(
+                h_expr
+            )
+
+            if xi is not None and hi is not None:
+
+                xd, a, xs = xi
+
+                hd, b, hs = hi
+
+                return sp.simplify(
+                    xs * hs *
+                    sp.DiracDelta(
+                        t - a - b
+                    )
+                )
+
+        return None
+
+
+    # x(t) contains delta
+
+    if len(x_deltas) == 1:
+
+        info = delta_info(
+            x_expr
+        )
+
+        if info is None:
+
+            return None
+
+
+        delta, a, scale = info
+
+
+        ordinary = sp.simplify(
+            x_expr / delta
+        )
+
+
+        result = (
+            scale *
+            ordinary.subs(t, a) *
+            h_expr.subs(
+                t,
+                t - a
+            )
+        )
+
+
+        return sp.simplify(
+            result
+        )
+
+
+    # h(t) contains delta
+
+    if len(h_deltas) == 1:
+
+        info = delta_info(
+            h_expr
+        )
+
+        if info is None:
+
+            return None
+
+
+        delta, b, scale = info
+
+
+        ordinary = sp.simplify(
+            h_expr / delta
+        )
+
+
+        result = (
+            scale *
+            ordinary.subs(t, b) *
+            x_expr.subs(
+                t,
+                t - b
+            )
+        )
+
+
+        return sp.simplify(
+            result
+        )
+
+
+    return None
+
+
+# =========================================================
+# CONVOLUTION
+# =========================================================
+
+has_delta = (
+
+    x.has(
+        sp.DiracDelta
+    )
+
+    or
+
+    h.has(
+        sp.DiracDelta
+    )
+
+)
+
+
+symbolic_y = None
+
+
+# =========================================================
+# DIRAC DELTA PATH
+# =========================================================
+
+if has_delta:
+
+    symbolic_y = delta_convolution(
+        x,
+        h
+    )
+
+
+    # Try general symbolic integration if
+    # the simple delta handler did not work.
+
+    if symbolic_y is None:
+
+        x_tau = x.subs(
+            t,
+            tau
+        )
+
+        h_shifted = h.subs(
+            t,
+            t - tau
+        )
+
+
+        integrand = (
+            x_tau *
+            h_shifted
+        )
+
+
+        try:
+
+            candidate = sp.integrate(
+                integrand,
+                (
+                    tau,
+                    -sp.oo,
+                    sp.oo
+                )
+            )
+
+        except Exception:
+
+            candidate = None
+
+
+        if (
+            candidate is not None
+            and
+            not isinstance(
+                candidate,
+                sp.Integral
+            )
+        ):
+
+            symbolic_y = sp.simplify(
+                candidate
+            )
+
+
+    if (
+        symbolic_y is None
+        or
+        isinstance(
+            symbolic_y,
+            sp.Integral
+        )
+    ):
+
+        raise ValueError(
+            "This DiracDelta form could not "
+            "be evaluated automatically. "
+            "Use a linear impulse such as "
+            "sp.DiracDelta(t-a)."
+        )
+
+
+    y_values = evaluate_expression(
+        symbolic_y
+    )
+
+
+# =========================================================
+# ORDINARY NUMERICAL CONVOLUTION
 # =========================================================
 
 else:
 
     integrand = (
-        x.subs(t, tau) *
-        h.subs(t, t - tau)
+
+        x.subs(
+            t,
+            tau
+        )
+
+        *
+
+        h.subs(
+            t,
+            t - tau
+        )
+
     )
 
 
-    f = sp.lambdify(
+    fn = sp.lambdify(
         (tau, t),
         integrand,
         modules=["numpy"]
@@ -524,24 +796,19 @@ else:
     )
 
 
-    for i, tv in enumerate(t_values):
+    for i, tv in enumerate(
+        t_values
+    ):
 
-        try:
+        values = np.asarray(
 
-            values = np.asarray(
-                f(
-                    tau_values,
-                    tv
-                ),
-                dtype=float
-            )
+            fn(
+                tau_values,
+                tv
+            ),
 
-        except Exception as e:
-
-            raise ValueError(
-                "The functions could not be "
-                "evaluated numerically."
-            ) from e
+            dtype=float
+        )
 
 
         if values.ndim == 0:
@@ -594,31 +861,44 @@ fig, ax = plt.subplots(
     figsize=(10, 5.5),
 
     dpi=130
+
 )
 
 
 ax.plot(
+
     t_values,
+
     y_values,
+
     linewidth=2
+
 )
 
 
-# EXACT USER RANGE
+# EXACT USER REQUESTED RANGE
 
 ax.set_xlim(
+
     start,
+
     stop
+
 )
 
 
 ax.set_xticks(
 
     np.linspace(
+
         start,
+
         stop,
+
         9
+
     )
+
 )
 
 
@@ -638,22 +918,31 @@ ax.set_title(
 
 
 ax.grid(
+
     True,
+
     alpha=0.3
+
 )
 
 
 ax.axhline(
+
     0,
+
     linewidth=0.8
+
 )
 
 
 if start <= 0 <= stop:
 
     ax.axvline(
+
         0,
+
         linewidth=0.8
+
     )
 
 
@@ -674,6 +963,7 @@ fig.savefig(
     format="png",
 
     bbox_inches="tight"
+
 )
 
 
@@ -688,12 +978,19 @@ image_b64 = base64.b64encode(
 
 
 # =========================================================
-# NUMERICAL VALUES
+# NUMERICAL OUTPUT
 # =========================================================
 
 sample_step = max(
+
     1,
-    int(np.ceil(N / 200))
+
+    int(
+        np.ceil(
+            N / 200
+        )
+    )
+
 )
 
 
@@ -716,19 +1013,21 @@ result = {
         int(N),
 
     "symbolic":
-        str(
-            symbolic_y
-        ) if has_delta else None
+        (
+            str(symbolic_y)
+            if symbolic_y is not None
+            else None
+        )
+
 }
 
 
 result
-
         `);
 
 
         /* =================================================
-           DISPLAY PNG
+           DISPLAY IMAGE
            ================================================= */
 
         const imageBytes =
@@ -756,7 +1055,9 @@ result
 
 
         currentImage =
-            URL.createObjectURL(blob);
+            URL.createObjectURL(
+                blob
+            );
 
 
         figureContainer.innerHTML = "";
@@ -792,7 +1093,9 @@ result
             "\\n\\n";
 
 
-        if (result.symbolic !== null) {
+        if (
+            result.symbolic !== null
+        ) {
 
             text +=
                 "Symbolic convolution:\\n";
@@ -821,10 +1124,13 @@ result
                 Number(
                     result.t[i]
                 ).toFixed(8) +
+
                 "\\t" +
+
                 Number(
                     result.y[i]
                 ).toFixed(8) +
+
                 "\\n";
         }
 
@@ -836,10 +1142,12 @@ result
 
             text +=
                 "\\nShowing every " +
+
                 Math.ceil(
                     result.count /
                     result.t.length
                 ) +
+
                 "th point.";
         }
 
@@ -848,10 +1156,21 @@ result
             text;
 
 
-        statusText.textContent =
+        if (
             result.symbolic !== null
-                ? "Convolution complete (symbolic DiracDelta handling)."
-                : "Convolution complete.";
+        ) {
+
+            setStatus(
+                "Convolution complete — " +
+                "DiracDelta handled symbolically."
+            );
+
+        } else {
+
+            setStatus(
+                "Convolution complete."
+            );
+        }
 
 
     } catch (error) {
@@ -859,8 +1178,10 @@ result
         console.error(error);
 
 
-        statusText.textContent =
-            "Error: " + error.message;
+        setStatus(
+            "Error: " +
+            (error.message || error)
+        );
 
 
         figureContainer.innerHTML =
@@ -875,12 +1196,13 @@ result
     } finally {
 
         convolveBtn.disabled = false;
+
     }
 }
 
 
 /* =========================================================
-   DOWNLOAD
+   DOWNLOAD PNG
    ========================================================= */
 
 downloadBtn.addEventListener(
@@ -904,19 +1226,22 @@ downloadBtn.addEventListener(
             "continuous_time_convolution.png";
 
 
-        document.body.appendChild(link);
+        document.body.appendChild(
+            link
+        );
 
 
         link.click();
 
 
         link.remove();
+
     }
 );
 
 
 /* =========================================================
-   BUTTON
+   CONVOLVE BUTTON
    ========================================================= */
 
 convolveBtn.addEventListener(
