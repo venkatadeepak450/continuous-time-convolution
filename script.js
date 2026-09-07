@@ -1,23 +1,21 @@
 let pyodide = null;
-
 let currentImage = null;
 
+const convolveBtn = document.getElementById("convolveBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const statusText = document.getElementById("status");
+const figureContainer = document.getElementById("figureContainer");
+const valuesBox = document.getElementById("values");
 
-const convolveBtn =
-    document.getElementById("convolveBtn");
 
-const downloadBtn =
-    document.getElementById("downloadBtn");
+function getInput(id) {
+    return document.getElementById(id).value.trim();
+}
 
-const statusText =
-    document.getElementById("status");
 
-const figureContainer =
-    document.getElementById("figureContainer");
-
-const valuesBox =
-    document.getElementById("values");
-
+/* =========================================================
+   LOAD PYTHON / SYMPY / NUMPY / MATPLOTLIB
+   ========================================================= */
 
 async function loadPython() {
 
@@ -26,11 +24,15 @@ async function loadPython() {
 
     convolveBtn.disabled = true;
 
-
     try {
 
-        pyodide = await loadPyodide();
+        if (typeof loadPyodide !== "function") {
+            throw new Error(
+                "Pyodide did not load. Check your internet connection."
+            );
+        }
 
+        pyodide = await loadPyodide();
 
         await pyodide.loadPackage([
             "numpy",
@@ -38,33 +40,23 @@ async function loadPython() {
             "matplotlib"
         ]);
 
-
         statusText.textContent = "Ready.";
 
         convolveBtn.disabled = false;
 
-
     } catch (error) {
 
-        statusText.textContent =
-            "Could not load the Python environment.";
-
         console.error(error);
+
+        statusText.textContent =
+            "Could not load Python: " + error.message;
     }
 }
 
 
-
-function getInput(id) {
-
-    return document
-        .getElementById(id)
-        .value
-        .trim();
-
-}
-
-
+/* =========================================================
+   CONVOLUTION
+   ========================================================= */
 
 async function convolve() {
 
@@ -72,21 +64,20 @@ async function convolve() {
         return;
     }
 
+    const xExpr = getInput("xFunction");
+    const hExpr = getInput("hFunction");
+    const linspaceExpr = getInput("linspace");
 
-    const xExpr =
-        getInput("xFunction");
+    if (!xExpr || !hExpr || !linspaceExpr) {
 
-    const hExpr =
-        getInput("hFunction");
+        statusText.textContent =
+            "Please fill all three inputs.";
 
-    const linspaceExpr =
-        getInput("linspace");
-
+        return;
+    }
 
     convolveBtn.disabled = true;
-
     downloadBtn.disabled = true;
-
 
     statusText.textContent =
         "Calculating convolution...";
@@ -123,22 +114,29 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import base64
+import re
 
 from io import BytesIO
 
 
-# --------------------------------------------------
-# Symbols
-# --------------------------------------------------
+# =========================================================
+# SYMBOLS
+# =========================================================
 
-t = sp.symbols("t", real=True)
+t = sp.symbols(
+    "t",
+    real=True
+)
 
-tau = sp.symbols("tau", real=True)
+tau = sp.symbols(
+    "tau",
+    real=True
+)
 
 
-# --------------------------------------------------
-# SymPy functions allowed in user input
-# --------------------------------------------------
+# =========================================================
+# ALLOWED SYMPY FUNCTIONS
+# =========================================================
 
 local_dict = {
 
@@ -180,88 +178,160 @@ local_dict = {
 
     "sign": sp.sign,
 
-    "Heaviside": sp.Heaviside
+    "Heaviside": sp.Heaviside,
+
+    "heaviside": sp.Heaviside,
+
+    "DiracDelta": sp.DiracDelta,
+
+    "diracdelta": sp.DiracDelta
 }
 
 
-# --------------------------------------------------
-# Parse x(t) and h(t)
-# --------------------------------------------------
+# =========================================================
+# FIX COMMON LOWERCASE INPUT
+# =========================================================
 
-x = sp.sympify(
-    x_input,
-    locals=local_dict
+x_input = re.sub(
+    r"(?i)\\\\bsp\\\\.heaviside\\\\b",
+    "sp.Heaviside",
+    x_input
 )
 
-h = sp.sympify(
-    h_input,
-    locals=local_dict
+h_input = re.sub(
+    r"(?i)\\\\bsp\\\\.heaviside\\\\b",
+    "sp.Heaviside",
+    h_input
+)
+
+x_input = re.sub(
+    r"(?i)\\\\bsp\\\\.diracdelta\\\\b",
+    "sp.DiracDelta",
+    x_input
+)
+
+h_input = re.sub(
+    r"(?i)\\\\bsp\\\\.diracdelta\\\\b",
+    "sp.DiracDelta",
+    h_input
 )
 
 
-# Only t is allowed as the variable
+# =========================================================
+# PARSE x(t) AND h(t)
+# =========================================================
+
+try:
+
+    x = sp.sympify(
+        x_input,
+        locals=local_dict
+    )
+
+    h = sp.sympify(
+        h_input,
+        locals=local_dict
+    )
+
+except Exception as e:
+
+    raise ValueError(
+        "Invalid SymPy expression."
+    ) from e
+
+
+# =========================================================
+# ONLY t IS ALLOWED AS A SIGNAL VARIABLE
+# =========================================================
 
 if x.free_symbols - {t}:
 
     raise ValueError(
-        "Only t may be used as a signal variable."
+        "x(t) may contain only the variable t."
     )
 
 
 if h.free_symbols - {t}:
 
     raise ValueError(
-        "Only t may be used as a signal variable."
+        "h(t) may contain only the variable t."
     )
 
 
-# --------------------------------------------------
-# Parse np.linspace(...)
-# --------------------------------------------------
+# =========================================================
+# PARSE np.linspace(start, stop, points)
+# =========================================================
 
-import re
-
+linspace_pattern = (
+    r"^\\\\s*np\\\\.linspace\\\\("
+    r"\\\\s*(.+?)\\\\s*,"
+    r"\\\\s*(.+?)\\\\s*,"
+    r"\\\\s*(\\\\d+)\\\\s*"
+    r"\\\\)\\\\s*$"
+)
 
 match = re.fullmatch(
-
-    r"\\s*np\\.linspace\\(\\s*(.+?)\\s*,\\s*(.+?)\\s*,\\s*(\\d+)\\s*\\)\\s*",
-
+    linspace_pattern,
     linspace_input
-
 )
 
 
 if not match:
 
     raise ValueError(
-        "Linspace must be in the form "
+        "Use exactly: "
         "np.linspace(start, stop, points)"
     )
 
 
-start_expr = sp.sympify(
-    match.group(1),
-    locals=local_dict
-)
+start_text = match.group(1).strip()
+
+stop_text = match.group(2).strip()
+
+points_text = match.group(3).strip()
 
 
-stop_expr = sp.sympify(
-    match.group(2),
-    locals=local_dict
-)
+try:
+
+    start = float(
+        sp.N(
+            sp.sympify(
+                start_text,
+                locals=local_dict
+            )
+        )
+    )
+
+    stop = float(
+        sp.N(
+            sp.sympify(
+                stop_text,
+                locals=local_dict
+            )
+        )
+    )
+
+    N = int(points_text)
 
 
-start = float(start_expr)
-
-stop = float(stop_expr)
-
-N = int(match.group(3))
-
-
-if N < 2:
+except Exception as e:
 
     raise ValueError(
-        "Linspace must contain at least 2 points."
+        "Invalid np.linspace values."
+    ) from e
+
+
+if not np.isfinite(start):
+
+    raise ValueError(
+        "Linspace start must be finite."
+    )
+
+
+if not np.isfinite(stop):
+
+    raise ValueError(
+        "Linspace stop must be finite."
     )
 
 
@@ -272,9 +342,16 @@ if stop <= start:
     )
 
 
-# --------------------------------------------------
-# User's exact time array
-# --------------------------------------------------
+if N < 2:
+
+    raise ValueError(
+        "Linspace must contain at least 2 points."
+    )
+
+
+# =========================================================
+# USER TIME ARRAY
+# =========================================================
 
 t_values = np.linspace(
     start,
@@ -283,111 +360,234 @@ t_values = np.linspace(
 )
 
 
-# --------------------------------------------------
-# Continuous-time convolution
+# =========================================================
+# DIRAC DELTA DETECTION
+# =========================================================
+
+has_delta = (
+    x.has(sp.DiracDelta) or
+    h.has(sp.DiracDelta)
+)
+
+
+# =========================================================
+# SYMBOLIC CONTINUOUS-TIME CONVOLUTION
 #
 # y(t) = integral x(tau) h(t-tau) dtau
-# --------------------------------------------------
+#
+# SymPy is used first. This is especially important
+# for DiracDelta because an impulse should NOT be
+# sampled as an ordinary numerical function.
+# =========================================================
 
-x_tau = x.subs(
-    t,
-    tau
-)
+if has_delta:
+
+    x_tau = x.subs(
+        t,
+        tau
+    )
+
+    h_shifted = h.subs(
+        t,
+        t - tau
+    )
+
+    integrand = (
+        x_tau *
+        h_shifted
+    )
+
+    try:
+
+        symbolic_y = sp.integrate(
+            integrand,
+            (tau, -sp.oo, sp.oo)
+        )
+
+    except Exception:
+
+        symbolic_y = sp.Integral(
+            integrand,
+            (tau, -sp.oo, sp.oo)
+        )
 
 
-h_shifted = h.subs(
-    t,
-    t - tau
-)
+    if isinstance(
+        symbolic_y,
+        sp.Integral
+    ):
+
+        # Try SymPy's convolution implementation
+        try:
+
+            symbolic_y = sp.convolution(
+                x,
+                h,
+                t
+            )
+
+        except Exception:
+
+            raise ValueError(
+                "SymPy could not symbolically evaluate "
+                "the DiracDelta convolution. "
+                "Try a simpler expression."
+            )
 
 
-integrand = (
-    x_tau *
-    h_shifted
-)
+    symbolic_y = sp.simplify(
+        symbolic_y
+    )
 
 
-f = sp.lambdify(
-    (tau, t),
-    integrand,
-    modules=["numpy"]
-)
+    # -----------------------------------------------------
+    # Numerical evaluation of symbolic result
+    # -----------------------------------------------------
+
+    try:
+
+        y_func = sp.lambdify(
+            t,
+            symbolic_y,
+            modules=["numpy"]
+        )
+
+        y_values = np.asarray(
+            y_func(t_values),
+            dtype=float
+        )
+
+    except Exception as e:
+
+        raise ValueError(
+            "The symbolic convolution could not "
+            "be evaluated numerically."
+        ) from e
 
 
-# Integration points
+    if y_values.ndim == 0:
 
-tau_values = np.linspace(
+        y_values = np.full(
+            t_values.shape,
+            float(y_values)
+        )
 
-    start,
-    stop,
 
-    max(
+    y_values = np.nan_to_num(
+        y_values,
+        nan=0.0,
+        posinf=0.0,
+        neginf=0.0
+    )
+
+
+# =========================================================
+# ORDINARY FUNCTIONS
+#
+# Numerical continuous-time convolution
+# =========================================================
+
+else:
+
+    integrand = (
+        x.subs(t, tau) *
+        h.subs(t, t - tau)
+    )
+
+
+    f = sp.lambdify(
+        (tau, t),
+        integrand,
+        modules=["numpy"]
+    )
+
+
+    integration_points = max(
         3000,
         min(
             7000,
             N * 5
         )
     )
-)
 
 
-y_values = np.empty(
-    N,
-    dtype=float
-)
+    tau_values = np.linspace(
+        start,
+        stop,
+        integration_points
+    )
 
 
-# --------------------------------------------------
-# Numerical integration
-# --------------------------------------------------
-
-for i, tv in enumerate(t_values):
-
-    values = np.asarray(
-
-        f(
-            tau_values,
-            tv
-        ),
-
+    y_values = np.empty(
+        N,
         dtype=float
     )
 
 
-    if values.ndim == 0:
+    for i, tv in enumerate(t_values):
 
-        values = np.full(
-            tau_values.shape,
-            float(values)
-        )
+        try:
+
+            values = np.asarray(
+                f(
+                    tau_values,
+                    tv
+                ),
+                dtype=float
+            )
+
+        except Exception as e:
+
+            raise ValueError(
+                "The functions could not be "
+                "evaluated numerically."
+            ) from e
 
 
-    values = np.nan_to_num(
-        values
-    )
+        if values.ndim == 0:
+
+            values = np.full(
+                tau_values.shape,
+                float(values)
+            )
 
 
-    if hasattr(
-        np,
-        "trapezoid"
-    ):
+        if values.shape != tau_values.shape:
 
-        y_values[i] = np.trapezoid(
+            raise ValueError(
+                "Invalid numerical function output."
+            )
+
+
+        values = np.nan_to_num(
             values,
-            tau_values
-        )
-
-    else:
-
-        y_values[i] = np.trapz(
-            values,
-            tau_values
+            nan=0.0,
+            posinf=0.0,
+            neginf=0.0
         )
 
 
-# --------------------------------------------------
-# Create Matplotlib figure
-# --------------------------------------------------
+        if hasattr(
+            np,
+            "trapezoid"
+        ):
+
+            y_values[i] = np.trapezoid(
+                values,
+                tau_values
+            )
+
+        else:
+
+            y_values[i] = np.trapz(
+                values,
+                tau_values
+            )
+
+
+# =========================================================
+# MATPLOTLIB FIGURE
+# =========================================================
 
 fig, ax = plt.subplots(
 
@@ -398,18 +598,13 @@ fig, ax = plt.subplots(
 
 
 ax.plot(
-
     t_values,
-
     y_values,
-
     linewidth=2
 )
 
 
-# IMPORTANT:
-# The visible graph uses the user's exact
-# linspace range.
+# EXACT USER RANGE
 
 ax.set_xlim(
     start,
@@ -465,9 +660,9 @@ if start <= 0 <= stop:
 fig.tight_layout()
 
 
-# --------------------------------------------------
-# Convert Matplotlib figure to PNG
-# --------------------------------------------------
+# =========================================================
+# PNG
+# =========================================================
 
 buffer = BytesIO()
 
@@ -492,19 +687,20 @@ image_b64 = base64.b64encode(
 ).decode("ascii")
 
 
-# --------------------------------------------------
-# Numerical values
-# --------------------------------------------------
+# =========================================================
+# NUMERICAL VALUES
+# =========================================================
 
 sample_step = max(
     1,
-    N // 200
+    int(np.ceil(N / 200))
 )
 
 
 result = {
 
-    "image": image_b64,
+    "image":
+        image_b64,
 
     "t":
         t_values[
@@ -517,7 +713,12 @@ result = {
         ].tolist(),
 
     "count":
-        int(N)
+        int(N),
+
+    "symbolic":
+        str(
+            symbolic_y
+        ) if has_delta else None
 }
 
 
@@ -526,29 +727,23 @@ result
         `);
 
 
-        // --------------------------------------------------
-        // Display PNG
-        // --------------------------------------------------
+        /* =================================================
+           DISPLAY PNG
+           ================================================= */
 
         const imageBytes =
             Uint8Array.from(
-
                 atob(result.image),
-
                 c => c.charCodeAt(0)
-
             );
 
 
         const blob =
             new Blob(
-
                 [imageBytes],
-
                 {
                     type: "image/png"
                 }
-
             );
 
 
@@ -557,7 +752,6 @@ result
             URL.revokeObjectURL(
                 currentImage
             );
-
         }
 
 
@@ -588,15 +782,30 @@ result
         downloadBtn.disabled = false;
 
 
-        // --------------------------------------------------
-        // Numerical output
-        // --------------------------------------------------
+        /* =================================================
+           NUMERICAL VALUES
+           ================================================= */
 
         let text =
-            `Total points: ${result.count}\\n\\n`;
+            "Total points: " +
+            result.count +
+            "\\n\\n";
+
+
+        if (result.symbolic !== null) {
+
+            text +=
+                "Symbolic convolution:\\n";
+
+            text +=
+                result.symbolic +
+                "\\n\\n";
+        }
+
 
         text +=
             "t\\ty(t)\\n";
+
 
         text +=
             "-------------------------\\n";
@@ -609,9 +818,14 @@ result
         ) {
 
             text +=
-                `${Number(result.t[i]).toFixed(8)}\\t` +
-                `${Number(result.y[i]).toFixed(8)}\\n`;
-
+                Number(
+                    result.t[i]
+                ).toFixed(8) +
+                "\\t" +
+                Number(
+                    result.y[i]
+                ).toFixed(8) +
+                "\\n";
         }
 
 
@@ -621,13 +835,12 @@ result
         ) {
 
             text +=
-                `\\nShowing every ${
-                    Math.ceil(
-                        result.count /
-                        result.t.length
-                    )
-                }th point.`;
-
+                "\\nShowing every " +
+                Math.ceil(
+                    result.count /
+                    result.t.length
+                ) +
+                "th point.";
         }
 
 
@@ -636,7 +849,9 @@ result
 
 
         statusText.textContent =
-            "Convolution complete.";
+            result.symbolic !== null
+                ? "Convolution complete (symbolic DiracDelta handling)."
+                : "Convolution complete.";
 
 
     } catch (error) {
@@ -660,16 +875,13 @@ result
     } finally {
 
         convolveBtn.disabled = false;
-
     }
-
 }
 
 
-
-// --------------------------------------------------
-// Download PNG
-// --------------------------------------------------
+/* =========================================================
+   DOWNLOAD
+   ========================================================= */
 
 downloadBtn.addEventListener(
     "click",
@@ -699,15 +911,13 @@ downloadBtn.addEventListener(
 
 
         link.remove();
-
     }
 );
 
 
-
-// --------------------------------------------------
-// Convolve button
-// --------------------------------------------------
+/* =========================================================
+   BUTTON
+   ========================================================= */
 
 convolveBtn.addEventListener(
     "click",
@@ -715,9 +925,8 @@ convolveBtn.addEventListener(
 );
 
 
-
-// --------------------------------------------------
-// Start Python environment
-// --------------------------------------------------
+/* =========================================================
+   START PYODIDE
+   ========================================================= */
 
 loadPython();
